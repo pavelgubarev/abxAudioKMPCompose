@@ -38,24 +38,26 @@ class Presenter {
         audioPlayers[TrackCode.B] = playerB
     }
 
-    public fun getAudioPlayer(track: TrackCode) : MediaPlayerController {
+    fun getAudioPlayer(track: TrackCode) : MediaPlayerController {
         return audioPlayers[track]!!
     }
 
-    public fun didTapPlay(trackToPlay: TrackCode) {
-
-        print(trackToPlay)
-
-        for (code in arrayOf(TrackCode.A, TrackCode.B)) {
-            if (code == trackToPlay) {
-                print(code)
-                print("started")
-                audioPlayers[code]?.start()
-            } else {
-                print(code)
-                print("paused")
-                audioPlayers[code]?.pause()
+    fun didTapPlay(trackToPlay: TrackCode) {
+        arrayOf(TrackCode.A, TrackCode.B).forEach { code ->
+            audioPlayers[code]?.let { player ->
+                if (code == trackToPlay) player.start() else player.pause()
             }
+        }
+    }
+
+    fun didChangeSliderProgress(progress: Float) {
+        syncProgress(progress)
+    }
+
+    private fun syncProgress(progress: Float) {
+        audioPlayers.values.forEach { player ->
+            val newProgress = (player.duration() * progress / 100).toDouble()
+            player.syncTo(newProgress)
         }
     }
 

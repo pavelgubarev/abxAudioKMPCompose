@@ -21,6 +21,7 @@ import platform.AVFoundation.seekToTime
 import platform.AVFoundation.timeControlStatus
 import platform.CoreMedia.CMTime
 import platform.CoreMedia.CMTimeMakeWithSeconds
+import platform.CoreMedia.CMTimeGetSeconds
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSURL
@@ -28,7 +29,9 @@ import platform.darwin.NSEC_PER_SEC
 import kotlin.experimental.ExperimentalNativeApi
 
 import abxtestcompose.composeapp.generated.resources.Res
+import kotlinx.cinterop.useContents
 import org.jetbrains.compose.resources.ExperimentalResourceApi
+import platform.AVFoundation.duration
 
 
 @OptIn(ExperimentalForeignApi::class)
@@ -110,10 +113,19 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         }
     }
 
-    actual fun syncTo(progress: Long) {
-        player.seekToTime(time = cValue {
-            value = progress
-        })
+    actual fun syncTo(progress: Double) {
+
+//
+//
+//        val time = cValue<CMTime> {
+//            value = progress
+//            timeScale = this@MediaPlayerController.timeScale
+//        }
+//        println("progress came $progress")
+
+
+
+        player.seekToTime( CMTimeMakeWithSeconds(progress, NSEC_PER_SEC.toInt()))
     }
 
     private fun stop1() {
@@ -122,12 +134,18 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         player.currentItem?.seekToTime(CMTimeMakeWithSeconds(0.0, NSEC_PER_SEC.toInt()))
     }
 
-
     actual fun isPlaying(): Boolean {
         return this.player.timeControlStatus == AVPlayerTimeControlStatusPlaying
     }
 
     actual fun release() {
         observer.let { NSNotificationCenter.defaultCenter.removeObserver(it) }
+    }
+
+    actual fun duration(): Double {
+        player.currentItem?.also { currentItem ->
+            return CMTimeGetSeconds(currentItem.duration())
+        }
+        return 0.0
     }
 }

@@ -1,7 +1,5 @@
 package gubarev.abxtestompose
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Button
@@ -10,16 +8,13 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-import abxtestcompose.composeapp.generated.resources.Res
-import abxtestcompose.composeapp.generated.resources.compose_multiplatform
+import androidx.compose.material.Slider
 
 @Composable
 @Preview
 fun App() {
-
     val presenter = Presenter()
 
     MaterialTheme {
@@ -31,6 +26,21 @@ fun App() {
             Button(onClick = { presenter.didTapPlay(TrackCode.B) }) {
                 Text("Play B!")
             }
+            playerSlider(presenter)
         }
     }
+}
+
+@Composable
+fun playerSlider(presenter: Presenter) {
+    var sliderPosition by remember { mutableStateOf(50f) }
+
+    Slider(
+        value = sliderPosition,
+        onValueChange = {
+            sliderPosition = it
+            presenter.didChangeSliderProgress(it)
+        },
+        valueRange = 0f..100f
+    )
 }

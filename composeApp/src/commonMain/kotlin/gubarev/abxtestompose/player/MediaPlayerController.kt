@@ -13,7 +13,9 @@ expect class MediaPlayerController(platformContext: PlatformContext) {
 
     fun release()
 
-    fun syncTo(progress: Long)
+    fun syncTo(progress: Double)
+
+    fun duration(): Double
 }
 
 expect class PlatformContext()
