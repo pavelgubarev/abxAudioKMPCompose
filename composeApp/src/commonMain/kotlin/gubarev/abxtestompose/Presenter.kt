@@ -1,6 +1,5 @@
 package gubarev.abxtestompose
 
-import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +44,8 @@ class Presenter {
 
         audioPlayers[TrackCode.A] = playerA
         audioPlayers[TrackCode.B] = playerB
+
+//        syncProgress(progress = 0f)
     }
 
     fun getAudioPlayer(track: TrackCode) : MediaPlayerController {
@@ -79,11 +80,24 @@ class Presenter {
     }
 
     fun playOrPause() {
-//        if (!player.isPlaying()) {
-//            player.start()
-//        } else {
-//            player.pause()
-//        }
+
+        val isCurrentlyPlaying = !_state.value.isPlaying
+
+        _state.update {
+            it.copy( isPlaying = isCurrentlyPlaying)
+        }
+
+        //TODO: можно один цикл?
+        arrayOf(TrackCode.A, TrackCode.B).forEach { code ->
+            audioPlayers[code]?.let { player ->
+                if (!isCurrentlyPlaying) {
+                    player.pause()
+                }
+                if (isCurrentlyPlaying && code == _state.value.userChosenTrack) {
+                    player.start()
+                }
+            }
+        }
     }
 
 }

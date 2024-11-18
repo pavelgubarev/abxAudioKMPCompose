@@ -8,5 +8,6 @@ data class ABXTestingState(
     val answersCount: Int = 0,
     val correctAnswersCount: Int = 0,
     val correctAnswer: TrackCode = TrackCode.A,
-    var trackProgress: Float = 0f
+    val trackProgress: Float = 0f,
+    val isPlaying: Boolean = false
 )

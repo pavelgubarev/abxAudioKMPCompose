@@ -28,6 +28,9 @@ fun App(presenter: Presenter) {
             Button(onClick = { presenter.didTapPlay(TrackCode.B) }) {
                 Text("Play B!")
             }
+            Button(onClick = { presenter.playOrPause() }) {
+                Text(text = if (state.isPlaying) "Pause" else "Play")
+            }
             playerSlider(
                 state.trackProgress
             ) { sliderPosition ->

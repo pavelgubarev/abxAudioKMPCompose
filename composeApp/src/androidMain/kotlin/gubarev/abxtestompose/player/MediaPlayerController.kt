@@ -45,10 +45,6 @@ actual class MediaPlayerController actual constructor(platformContext: PlatformC
             player.pause()
     }
 
-    actual fun stop() {
-        player.stop()
-    }
-
     actual fun release() {
         player.release()
     }
@@ -57,8 +53,12 @@ actual class MediaPlayerController actual constructor(platformContext: PlatformC
         return player.isPlaying
     }
 
-    actual fun syncTo(progress: Long) {
-        player.seekTo(progress)
+    actual fun syncTo(progress: Double) {
+        player.seekTo(progress.toLong())
+    }
+
+    actual fun duration(): Double {
+        TODO("Not yet implemented")
     }
 }
 

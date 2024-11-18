@@ -9,8 +9,6 @@ expect class MediaPlayerController(platformContext: PlatformContext) {
 
     fun pause()
 
-    fun stop()
-
     fun isPlaying(): Boolean
 
     fun release()

@@ -54,7 +54,6 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         println("Prepare")
         this.listener = listener
 //        val url = NSURL(string = pathSource)
-        stop1()
         startTimeObserver()
 //        player.replaceCurrentItemWithPlayerItem(AVPlayerItem(url))
 
@@ -102,17 +101,11 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         player.pause()
     }
 
-    @OptIn(ExperimentalForeignApi::class)
-    actual fun stop() {
-        player.run {
-            pause()
-            seekToTime(time = cValue {
-                value = 0
-            })
-        }
-    }
-
     actual fun syncTo(progress: Double) {
+
+        print(cmtimeStruct)
+        println(cmtimeStruct)
+
         val newTime: CValue<CMTime> = cValue{
             value = progress.toLong()
             epoch = cmtimeStruct.useContents { this.epoch }
@@ -121,12 +114,6 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         }
 
         player.seekToTime(newTime)
-    }
-
-    private fun stop1() {
-        if (::timeObserver.isInitialized) player.removeTimeObserver(timeObserver)
-        player.pause()
-        player.currentItem?.seekToTime(CMTimeMakeWithSeconds(0.0, NSEC_PER_SEC.toInt()))
     }
 
     actual fun isPlaying(): Boolean {
