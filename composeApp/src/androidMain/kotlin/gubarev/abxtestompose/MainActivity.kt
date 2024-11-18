@@ -7,11 +7,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 
 class MainActivity : ComponentActivity() {
+
+    val presenter = Presenter()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
-            App()
+            App(presenter)
         }
     }
 }
@@ -19,5 +22,6 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    App()
+    val presenter = Presenter()
+    App(presenter)
 }

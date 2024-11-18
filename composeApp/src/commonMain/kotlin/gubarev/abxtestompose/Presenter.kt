@@ -1,9 +1,18 @@
 package gubarev.abxtestompose
 
+import androidx.compose.runtime.mutableStateOf
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+
 class Presenter {
 
     private val context = PlatformContext()
     private var audioPlayers: MutableMap<TrackCode, MediaPlayerController> = mutableMapOf()
+
+    private val _state = MutableStateFlow<ABXTestingState>(ABXTestingState())
+    val state: StateFlow<ABXTestingState> = _state.asStateFlow()
 
     private val listener = object : MediaPlayerListener {
         override fun onReady() {
@@ -42,10 +51,14 @@ class Presenter {
         return audioPlayers[track]!!
     }
 
-    fun didTapPlay(trackToPlay: TrackCode) {
+    fun didTapPlay(chosenTrack: TrackCode) {
+        _state.update {
+            it.copy( userChosenTrack = chosenTrack)
+        }
+
         arrayOf(TrackCode.A, TrackCode.B).forEach { code ->
             audioPlayers[code]?.let { player ->
-                if (code == trackToPlay) player.start() else player.pause()
+                if (code == chosenTrack) player.start() else player.pause()
             }
         }
     }
@@ -58,6 +71,10 @@ class Presenter {
         audioPlayers.values.forEach { player ->
             val newProgress = (player.duration() * progress / 100).toDouble()
             player.syncTo(newProgress)
+        }
+
+        _state.update {
+            it.copy( trackProgress = progress )
         }
     }
 

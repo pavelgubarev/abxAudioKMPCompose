@@ -9,13 +9,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
+import androidx.compose.runtime.collectAsState
 import androidx.compose.material.Slider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 @Preview
-fun App() {
-    val presenter = Presenter()
+fun App(presenter: Presenter) {
+
+    val state by presenter.state.collectAsStateWithLifecycle()
 
     MaterialTheme {
         var showContent by remember { mutableStateOf(false) }
@@ -26,20 +28,24 @@ fun App() {
             Button(onClick = { presenter.didTapPlay(TrackCode.B) }) {
                 Text("Play B!")
             }
-            playerSlider(presenter)
+            playerSlider(
+                state.trackProgress
+            ) { sliderPosition ->
+                presenter.didChangeSliderProgress(
+                    progress = sliderPosition
+                )
+            }
+            Text("Playing track " + state.userChosenTrack.toString())
         }
     }
 }
 
 @Composable
-fun playerSlider(presenter: Presenter) {
-    var sliderPosition by remember { mutableStateOf(50f) }
-
+fun playerSlider(sliderPosition: Float, onValueChange: (Float) -> Unit) {
     Slider(
         value = sliderPosition,
         onValueChange = {
-            sliderPosition = it
-            presenter.didChangeSliderProgress(it)
+            onValueChange(it)
         },
         valueRange = 0f..100f
     )

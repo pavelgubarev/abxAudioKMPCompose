@@ -18,10 +18,10 @@ import platform.AVFoundation.play
 import platform.AVFoundation.removeTimeObserver
 import platform.AVFoundation.replaceCurrentItemWithPlayerItem
 import platform.AVFoundation.seekToTime
+import platform.AVFoundation.currentTime
 import platform.AVFoundation.timeControlStatus
 import platform.CoreMedia.CMTime
 import platform.CoreMedia.CMTimeMakeWithSeconds
-import platform.CoreMedia.CMTimeGetSeconds
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSURL
@@ -43,6 +43,8 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
 
     private var listener: MediaPlayerListener? = null
 
+    private var cmtimeStruct: CValue<CMTime> = CMTimeMakeWithSeconds(0.0, NSEC_PER_SEC.toInt())
+
     init {
         setUpAudioSession()
     }
@@ -59,7 +61,6 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         val item = Res.getUri(pathSource)
         val itemURL =  NSURL.URLWithString(URLString = item)
         player.replaceCurrentItemWithPlayerItem(itemURL?.let { AVPlayerItem(it) })
-
     }
 
     private fun setUpAudioSession() {
@@ -94,12 +95,10 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
     }
 
     actual fun start() {
-        println("On Play")
         player.play()
     }
 
     actual fun pause() {
-        println("On pause")
         player.pause()
     }
 
@@ -114,18 +113,14 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
     }
 
     actual fun syncTo(progress: Double) {
+        val newTime: CValue<CMTime> = cValue{
+            value = progress.toLong()
+            epoch = cmtimeStruct.useContents { this.epoch }
+            flags = cmtimeStruct.useContents { this.flags }
+            timescale = cmtimeStruct.useContents { this.timescale }
+        }
 
-//
-//
-//        val time = cValue<CMTime> {
-//            value = progress
-//            timeScale = this@MediaPlayerController.timeScale
-//        }
-//        println("progress came $progress")
-
-
-
-        player.seekToTime( CMTimeMakeWithSeconds(progress, NSEC_PER_SEC.toInt()))
+        player.seekToTime(newTime)
     }
 
     private fun stop1() {
@@ -144,7 +139,8 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
 
     actual fun duration(): Double {
         player.currentItem?.also { currentItem ->
-            return CMTimeGetSeconds(currentItem.duration())
+            cmtimeStruct = currentItem.duration
+            return currentItem.duration().useContents { this.value }.toDouble()
         }
         return 0.0
     }
