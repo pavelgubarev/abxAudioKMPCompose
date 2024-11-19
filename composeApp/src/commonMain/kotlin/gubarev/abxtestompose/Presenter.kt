@@ -5,10 +5,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-class Presenter {
+interface PresenterInterface {
+    fun didTimeChangeTo(time: Double, code: TrackCode)
+}
+
+class Presenter: PresenterInterface {
 
     private val context = PlatformContext()
     private var audioPlayers: MutableMap<TrackCode, MediaPlayerController> = mutableMapOf()
+    private var bothCodes = arrayOf(TrackCode.A, TrackCode.B)
 
     private val _state = MutableStateFlow<ABXTestingState>(ABXTestingState())
     val state: StateFlow<ABXTestingState> = _state.asStateFlow()
@@ -36,16 +41,11 @@ class Presenter {
     }
 
     private fun setInitialState(tracksToTest: MutableMap<TrackCode, String>) {
-        val playerA = MediaPlayerController(platformContext = context)
-        playerA.prepare(tracksToTest[TrackCode.A]!!, listener = listener)
-
-        val playerB = MediaPlayerController(platformContext = context)
-        playerB.prepare(tracksToTest[TrackCode.B]!!, listener = listener)
-
-        audioPlayers[TrackCode.A] = playerA
-        audioPlayers[TrackCode.B] = playerB
-
-//        syncProgress(progress = 0f)
+        bothCodes.forEach { code ->
+            val player = MediaPlayerController(platformContext = context)
+            player.prepare(tracksToTest[code]!!, listener = listener, delegate = this, code = code)
+            audioPlayers[code] = player
+        }
     }
 
     fun getAudioPlayer(track: TrackCode) : MediaPlayerController {
@@ -64,31 +64,30 @@ class Presenter {
         }
     }
 
-    fun didChangeSliderProgress(progress: Float) {
+    fun didChangeSliderProgress(progress: Double) {
         syncProgress(progress)
     }
 
-    private fun syncProgress(progress: Float) {
+    private fun syncProgress(progress: Double) {
         audioPlayers.values.forEach { player ->
             val newProgress = (player.duration() * progress / 100).toDouble()
             player.syncTo(newProgress)
         }
 
         _state.update {
-            it.copy( trackProgress = progress )
+            it.copy( sliderProgress = progress )
         }
     }
 
     fun playOrPause() {
-
         val isCurrentlyPlaying = !_state.value.isPlaying
 
         _state.update {
-            it.copy( isPlaying = isCurrentlyPlaying)
+            it.copy(isPlaying = isCurrentlyPlaying)
         }
 
-        //TODO: можно один цикл?
-        arrayOf(TrackCode.A, TrackCode.B).forEach { code ->
+        //TODO: можно один цикл по audioplayers?
+        bothCodes.forEach { code ->
             audioPlayers[code]?.let { player ->
                 if (!isCurrentlyPlaying) {
                     player.pause()
@@ -96,6 +95,19 @@ class Presenter {
                 if (isCurrentlyPlaying && code == _state.value.userChosenTrack) {
                     player.start()
                 }
+            }
+        }
+    }
+
+    override fun didTimeChangeTo(time: Double, code: TrackCode) {
+
+        if (code == _state.value.userChosenTrack) {
+            val duration = audioPlayers[code]?.duration() ?: 0.0
+            val progress = time * 100 / duration
+
+            //TODO:  обновить время другого плеера
+            _state.update {
+                it.copy(sliderProgress = progress)
             }
         }
     }

@@ -32,10 +32,10 @@ fun App(presenter: Presenter) {
                 Text(text = if (state.isPlaying) "Pause" else "Play")
             }
             playerSlider(
-                state.trackProgress
+                state.sliderProgress
             ) { sliderPosition ->
                 presenter.didChangeSliderProgress(
-                    progress = sliderPosition
+                    progress = sliderPosition.toDouble()
                 )
             }
             Text("Playing track " + state.userChosenTrack.toString())
@@ -44,9 +44,9 @@ fun App(presenter: Presenter) {
 }
 
 @Composable
-fun playerSlider(sliderPosition: Float, onValueChange: (Float) -> Unit) {
+fun playerSlider(sliderPosition: Double, onValueChange: (Float) -> Unit) {
     Slider(
-        value = sliderPosition,
+        value = sliderPosition.toFloat(),
         onValueChange = {
             onValueChange(it)
         },

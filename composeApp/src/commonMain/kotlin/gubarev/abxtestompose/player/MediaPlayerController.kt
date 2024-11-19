@@ -1,9 +1,8 @@
 package gubarev.abxtestompose
 
 expect class MediaPlayerController(platformContext: PlatformContext) {
-   // var currentProgress: Float
 
-    fun prepare(pathSource: String, listener: MediaPlayerListener)
+    fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: PresenterInterface, code: TrackCode)
 
     fun start()
 
