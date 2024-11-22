@@ -7,7 +7,7 @@ data class ABXTestingState(
     val userChosenTrack: TrackCode = TrackCode.A,
     val answersCount: Int = 0,
     val correctAnswersCount: Int = 0,
-    val correctAnswer: TrackCode = TrackCode.A,
+    var currentCorrectAnswer: TrackCode = TrackCode.A,
     val sliderProgress: Double = 0.0,
     val isPlaying: Boolean = false
 )

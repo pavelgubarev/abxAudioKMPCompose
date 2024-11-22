@@ -52,20 +52,63 @@ class Presenter: PresenterInterface {
         return audioPlayers[track]!!
     }
 
-    fun didTapPlay(chosenTrack: TrackCode) {
+    fun didChooseTrack(chosenTrack: TrackCode) {
+        if (chosenTrack == _state.value.userChosenTrack) {
+            return
+        }
+
+        // TODO: remove
+        val test = audioPlayers[chosenTrack]?.duration()
+
         _state.update {
             it.copy( userChosenTrack = chosenTrack)
         }
 
-        arrayOf(TrackCode.A, TrackCode.B).forEach { code ->
-            audioPlayers[code]?.let { player ->
-                if (code == chosenTrack) player.start() else player.pause()
+        val trackToPlay = if (chosenTrack == TrackCode.X) {
+            _state.value.currentCorrectAnswer
+        } else {
+            chosenTrack
+        }
+
+        audioPlayers[trackToPlay]?.let {
+            audioPlayers[anotherPlayerCode(trackToPlay)]?.pause()
+            it.start()
+            it.syncTo(progress = audioPlayers[anotherPlayerCode(trackToPlay)]?.currentTime ?: 0.0)
+        }
+    }
+
+    private fun anotherPlayerCode(code: TrackCode): TrackCode {
+        return if (code == TrackCode.A) TrackCode.B else TrackCode.A
+    }
+
+    private fun setNextCorrectAnswer() {
+        _state.update {
+            it.copy( currentCorrectAnswer = if (kotlin.random.Random.nextBoolean()) TrackCode.A else TrackCode.B )
+        }
+
+            // TODO: pause and change X
+    }
+
+    fun didTapAnswer(answer: TrackCode) {
+        _state.update {
+            it.copy( answersCount = it.answersCount + 1)
+        }
+
+        if (answer == _state.value.currentCorrectAnswer) {
+            _state.update {
+                it.copy( correctAnswersCount = it.correctAnswersCount + 1)
             }
         }
+
+        setNextCorrectAnswer()
     }
 
     fun didChangeSliderProgress(progress: Double) {
         syncProgress(progress)
+    }
+
+    fun onAppear() {
+        setNextCorrectAnswer()
     }
 
     private fun syncProgress(progress: Double) {
@@ -100,7 +143,6 @@ class Presenter: PresenterInterface {
     }
 
     override fun didTimeChangeTo(time: Double, code: TrackCode) {
-
         if (code == _state.value.userChosenTrack) {
             val duration = audioPlayers[code]?.duration() ?: 0.0
             val progress = time * 100 / duration

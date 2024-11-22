@@ -38,6 +38,8 @@ import kotlin.native.ref.WeakReference
 @OptIn(ExperimentalForeignApi::class)
 actual class MediaPlayerController actual constructor(val platformContext: PlatformContext) {
 
+    actual var currentTime: Double = 0.0
+
     private lateinit var timeObserver: Any
 
     private val player: AVPlayer = AVPlayer()
@@ -81,8 +83,9 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
 
 
     @OptIn(ExperimentalNativeApi::class)
-    private val observer: (CValue<CMTime>) -> Unit = { time: CValue<CMTime> ->
+    private val observer: (CValue<CMTime>) -> Unit = {
         val newTime = CMTimeConvertScale(player.currentTime(), cmtimeStruct.useContents { this.timescale }.toInt(), method = 1u ).useContents { this.value }.toDouble()
+        currentTime = newTime
         delegate?.get()?.didTimeChangeTo(time = newTime, code = this.code)
         if (player.currentItem?.isPlaybackLikelyToKeepUp() == true) {
             listener?.onReady()

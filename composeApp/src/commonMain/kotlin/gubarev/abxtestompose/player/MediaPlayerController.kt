@@ -2,6 +2,8 @@ package gubarev.abxtestompose
 
 expect class MediaPlayerController(platformContext: PlatformContext) {
 
+    var currentTime: Double
+
     fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: PresenterInterface, code: TrackCode)
 
     fun start()
