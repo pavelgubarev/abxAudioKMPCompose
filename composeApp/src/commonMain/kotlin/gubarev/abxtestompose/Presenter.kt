@@ -64,16 +64,22 @@ class Presenter: PresenterInterface {
             it.copy( userChosenTrack = chosenTrack)
         }
 
-        val trackToPlay = if (chosenTrack == TrackCode.X) {
+        switchToTrack(trackToPlay = getTrackToPlay(chosenTrack))
+    }
+
+    private fun getTrackToPlay(chosenTrack: TrackCode): TrackCode {
+        return if (chosenTrack == TrackCode.X) {
             _state.value.currentCorrectAnswer
         } else {
             chosenTrack
         }
+    }
 
+    private fun switchToTrack(trackToPlay: TrackCode) {
         audioPlayers[trackToPlay]?.let {
             audioPlayers[anotherPlayerCode(trackToPlay)]?.pause()
             it.start()
-            it.syncTo(progress = audioPlayers[anotherPlayerCode(trackToPlay)]?.currentTime ?: 0.0)
+            it.syncTo(progress = audioPlayers[anotherPlayerCode(trackToPlay)]?.getCurrentTime() ?: 0.0)
         }
     }
 
@@ -86,7 +92,9 @@ class Presenter: PresenterInterface {
             it.copy( currentCorrectAnswer = if (kotlin.random.Random.nextBoolean()) TrackCode.A else TrackCode.B )
         }
 
-            // TODO: pause and change X
+        if (state.value.isPlaying) {
+           playOrPause()
+        }
     }
 
     fun didTapAnswer(answer: TrackCode) {
@@ -123,21 +131,16 @@ class Presenter: PresenterInterface {
     }
 
     fun playOrPause() {
-        val isCurrentlyPlaying = !_state.value.isPlaying
-
         _state.update {
-            it.copy(isPlaying = isCurrentlyPlaying)
+            it.copy(isPlaying = it.isPlaying)
         }
 
-        //TODO: можно один цикл по audioplayers?
-        bothCodes.forEach { code ->
-            audioPlayers[code]?.let { player ->
-                if (!isCurrentlyPlaying) {
-                    player.pause()
-                }
-                if (isCurrentlyPlaying && code == _state.value.userChosenTrack) {
-                    player.start()
-                }
+        for ((code, player) in audioPlayers) {
+            if (!_state.value.isPlaying) {
+                player.pause()
+            }
+            if (_state.value.isPlaying && code == getTrackToPlay(_state.value.userChosenTrack)) {
+                player.start()
             }
         }
     }
@@ -147,7 +150,6 @@ class Presenter: PresenterInterface {
             val duration = audioPlayers[code]?.duration() ?: 0.0
             val progress = time * 100 / duration
 
-            //TODO:  обновить время другого плеера
             _state.update {
                 it.copy(sliderProgress = progress)
             }

@@ -15,7 +15,6 @@ import platform.AVFoundation.currentItem
 import platform.AVFoundation.isPlaybackLikelyToKeepUp
 import platform.AVFoundation.pause
 import platform.AVFoundation.play
-import platform.AVFoundation.removeTimeObserver
 import platform.AVFoundation.replaceCurrentItemWithPlayerItem
 import platform.AVFoundation.seekToTime
 import platform.AVFoundation.currentTime
@@ -37,8 +36,6 @@ import kotlin.native.ref.WeakReference
 
 @OptIn(ExperimentalForeignApi::class)
 actual class MediaPlayerController actual constructor(val platformContext: PlatformContext) {
-
-    actual var currentTime: Double = 0.0
 
     private lateinit var timeObserver: Any
 
@@ -84,12 +81,14 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
 
     @OptIn(ExperimentalNativeApi::class)
     private val observer: (CValue<CMTime>) -> Unit = {
-        val newTime = CMTimeConvertScale(player.currentTime(), cmtimeStruct.useContents { this.timescale }.toInt(), method = 1u ).useContents { this.value }.toDouble()
-        currentTime = newTime
-        delegate?.get()?.didTimeChangeTo(time = newTime, code = this.code)
+        delegate?.get()?.didTimeChangeTo(time = getCurrentTime(), code = this.code)
         if (player.currentItem?.isPlaybackLikelyToKeepUp() == true) {
             listener?.onReady()
         }
+    }
+
+    actual fun getCurrentTime(): Double {
+        return  CMTimeConvertScale(player.currentTime(), cmtimeStruct.useContents { this.timescale }.toInt(), method = 1u ).useContents { this.value }.toDouble()
     }
 
     @OptIn(ExperimentalForeignApi::class, ExperimentalNativeApi::class)
@@ -101,7 +100,6 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
             `object` = player.currentItem,
             queue = NSOperationQueue.mainQueue,
             usingBlock = {
-                println("I am called")
                 listener?.onAudioCompleted()
             }
         )
