@@ -109,7 +109,7 @@ class Presenter: PresenterInterface {
                 it.copy( correctAnswersCount = it.correctAnswersCount + 1)
             }
         }
-
+        updateCanGetDifferenceState()
         setNextCorrectAnswer()
     }
 
@@ -144,6 +144,20 @@ class Presenter: PresenterInterface {
                 if (code == getTrackToPlay(_state.value.userChosenTrack)) {
                     player.start()
                 }
+            }
+        }
+    }
+
+    fun updateCanGetDifferenceState() {
+        if (_state.value.answersCount < trialsToMinCorrect.keys.min()) {
+            _state.update {
+                it.copy (canTellDifference = DifferenceState.NotEnoughTrials)
+            }
+        } else {
+            val minCorrectAnswersCount = trialsToMinCorrect[_state.value.correctAnswersCount] ?: 0
+            val canTellDifference: Boolean = _state.value.correctAnswersCount >= minCorrectAnswersCount
+            _state.update {
+                it.copy (canTellDifference = DifferenceState.EnoughTrials(canTellDifference))
             }
         }
     }
