@@ -78,7 +78,9 @@ class Presenter: PresenterInterface {
     private fun switchToTrack(trackToPlay: TrackCode) {
         audioPlayers[trackToPlay]?.let {
             audioPlayers[anotherPlayerCode(trackToPlay)]?.pause()
-            it.start()
+            if (_state.value.isPlaying) {
+                it.start()
+            }
             it.syncTo(progress = audioPlayers[anotherPlayerCode(trackToPlay)]?.getCurrentTime() ?: 0.0)
         }
     }
@@ -132,15 +134,16 @@ class Presenter: PresenterInterface {
 
     fun playOrPause() {
         _state.update {
-            it.copy(isPlaying = it.isPlaying)
+            it.copy(isPlaying = !it.isPlaying)
         }
 
         for ((code, player) in audioPlayers) {
             if (!_state.value.isPlaying) {
                 player.pause()
-            }
-            if (_state.value.isPlaying && code == getTrackToPlay(_state.value.userChosenTrack)) {
-                player.start()
+            } else {
+                if (code == getTrackToPlay(_state.value.userChosenTrack)) {
+                    player.start()
+                }
             }
         }
     }
