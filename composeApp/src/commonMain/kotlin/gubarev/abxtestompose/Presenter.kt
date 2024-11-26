@@ -15,7 +15,7 @@ class Presenter: PresenterInterface {
     private var audioPlayers: MutableMap<TrackCode, MediaPlayerController> = mutableMapOf()
     private var bothCodes = arrayOf(TrackCode.A, TrackCode.B)
 
-    private val _state = MutableStateFlow<ABXTestingState>(ABXTestingState())
+    private val _state = MutableStateFlow(ABXTestingState())
     val state: StateFlow<ABXTestingState> = _state.asStateFlow()
 
     private val listener = object : MediaPlayerListener {
@@ -46,10 +46,6 @@ class Presenter: PresenterInterface {
             player.prepare(tracksToTest[code]!!, listener = listener, delegate = this, code = code)
             audioPlayers[code] = player
         }
-    }
-
-    fun getAudioPlayer(track: TrackCode) : MediaPlayerController {
-        return audioPlayers[track]!!
     }
 
     fun didChooseTrack(chosenTrack: TrackCode) {
@@ -123,7 +119,7 @@ class Presenter: PresenterInterface {
 
     private fun syncProgress(progress: Double) {
         audioPlayers.values.forEach { player ->
-            val newProgress = (player.duration() * progress / 100).toDouble()
+            val newProgress = (player.duration() * progress / 100)
             player.syncTo(newProgress)
         }
 
@@ -148,16 +144,19 @@ class Presenter: PresenterInterface {
         }
     }
 
-    fun updateCanGetDifferenceState() {
-        if (_state.value.answersCount < trialsToMinCorrect.keys.min()) {
-            _state.update {
-                it.copy (canTellDifference = DifferenceState.NotEnoughTrials)
+    private fun updateCanGetDifferenceState() {
+        when {
+            (_state.value.answersCount < trialsToMinCorrect.keys.min()) -> {
+                _state.update {
+                    it.copy (canTellDifference = DifferenceState.NotEnoughTrials)
+                }
             }
-        } else {
-            val minCorrectAnswersCount = trialsToMinCorrect[_state.value.correctAnswersCount] ?: 0
-            val canTellDifference: Boolean = _state.value.correctAnswersCount >= minCorrectAnswersCount
-            _state.update {
-                it.copy (canTellDifference = DifferenceState.EnoughTrials(canTellDifference))
+            (_state.value.answersCount in trialsToMinCorrect.keys.min()..trialsToMinCorrect.keys.max()) -> {
+                val minCorrectAnswersCount = trialsToMinCorrect[_state.value.answersCount] ?: 0
+                val canTellDifference: Boolean = _state.value.correctAnswersCount >= minCorrectAnswersCount
+                _state.update {
+                    it.copy (canTellDifference = DifferenceState.EnoughTrials(canTellDifference))
+                }
             }
         }
     }

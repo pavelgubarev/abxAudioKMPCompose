@@ -19,32 +19,44 @@ import androidx.compose.foundation.BorderStroke
 @Composable
 @Preview
 fun App(presenter: Presenter) {
-
     val state by presenter.state.collectAsStateWithLifecycle()
 
     MaterialTheme(colorScheme = lightColorScheme()) {
-        var showContent by remember { mutableStateOf(false) }
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Button(onClick = { presenter.playOrPause() }) {
-                Text(text = if (state.isPlaying) "Pause" else "Play")
+            Card(Modifier.padding(16.dp)) {
+                Button(onClick = { presenter.playOrPause() }) {
+                    Text(if (state.isPlaying) "Pause" else "Play")
+                }
+                playerSlider(
+                    state.sliderProgress
+                ) { sliderPosition ->
+                    presenter.didChangeSliderProgress(
+                        progress = sliderPosition.toDouble()
+                    )
+                }
             }
-            playerSlider(
-                state.sliderProgress
-            ) { sliderPosition ->
-                presenter.didChangeSliderProgress(
-                    progress = sliderPosition.toDouble()
-                )
-            }
-            TrackChoiceSegmentedControl(
-                state.userChosenTrack
-            ) { trackToPlay ->
+            trackChoiceSegmentedControl(state.userChosenTrack) { trackToPlay ->
                 presenter.didChooseTrack(trackToPlay)
             }
-            answerButtons() { trackCode ->
+            answerButtons { trackCode ->
                 presenter.didTapAnswer(trackCode)
             }
-            Text("Total answers: " + state.answersCount)
-            Text("Correct answers: " + state.correctAnswersCount)
+            Card() {
+                Text("Total trials: " + state.answersCount)
+                Text("Correct answers: " + state.correctAnswersCount)
+                when (val differenceSate = state.canTellDifference) {
+                    is DifferenceState.EnoughTrials -> {
+                        if (differenceSate.canTellDifference) {
+                            Text("You can tell the difference between tracks")
+                        } else {
+                            Text("You cannot tell the difference between tracks")
+                        }
+                    }
+                    is DifferenceState.NotEnoughTrials-> {
+                        Text("You need to make at least 10 trials to know the result")
+                    }
+                }
+            }
         }
     }
     LaunchedEffect(Unit) {
@@ -54,6 +66,7 @@ fun App(presenter: Presenter) {
 
 @Composable
 fun answerButtons(didTap: (TrackCode) -> Unit) {
+    Text("My answer: ")
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Button(onClick = { didTap(TrackCode.A) }) {
             Text("X is A")
@@ -76,10 +89,7 @@ fun playerSlider(sliderPosition: Double, onValueChange: (Float) -> Unit) {
 }
 
 @Composable
-fun MaterialSegmentedControl(
-    selectedOption: TrackCode,
-    onOptionSelected: (TrackCode) -> Unit
-) {
+fun trackChoiceSegmentedControl(selectedOption: TrackCode, onOptionSelected: (TrackCode) -> Unit) {
     Row(
         modifier = Modifier.padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -100,19 +110,5 @@ fun MaterialSegmentedControl(
                 Text(option.toString())
             }
         }
-    }
-}
-
-@Composable
-fun TrackChoiceSegmentedControl(
-    userChosenTrack: TrackCode,
-    onOptionSelected: (TrackCode) -> Unit
-) {
-    Column {
-        Text("Playing track "+ userChosenTrack.toString(), Modifier.padding(16.dp))
-        MaterialSegmentedControl(
-            selectedOption = userChosenTrack,
-            onOptionSelected = onOptionSelected
-        )
     }
 }
