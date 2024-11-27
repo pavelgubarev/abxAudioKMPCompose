@@ -97,7 +97,7 @@ class Presenter: PresenterInterface {
 
     fun didTapAnswer(answer: TrackCode) {
         _state.update {
-            it.copy( answersCount = it.answersCount + 1)
+            it.copy( trialsCount = it.trialsCount + 1)
         }
 
         if (answer == _state.value.currentCorrectAnswer) {
@@ -146,16 +146,16 @@ class Presenter: PresenterInterface {
 
     private fun updateCanGetDifferenceState() {
         when {
-            (_state.value.answersCount < trialsToMinCorrect.keys.min()) -> {
+            (_state.value.trialsCount < trialsToMinCorrect.keys.min()) -> {
                 _state.update {
-                    it.copy (canTellDifference = DifferenceState.NotEnoughTrials)
+                    it.copy (trials = TrialsState.NotEnoughTrials)
                 }
             }
-            (_state.value.answersCount in trialsToMinCorrect.keys.min()..trialsToMinCorrect.keys.max()) -> {
-                val minCorrectAnswersCount = trialsToMinCorrect[_state.value.answersCount] ?: 0
+            (_state.value.trialsCount in trialsToMinCorrect.keys.min()..trialsToMinCorrect.keys.max()) -> {
+                val minCorrectAnswersCount = trialsToMinCorrect[_state.value.trialsCount] ?: 0
                 val canTellDifference: Boolean = _state.value.correctAnswersCount >= minCorrectAnswersCount
                 _state.update {
-                    it.copy (canTellDifference = DifferenceState.EnoughTrials(canTellDifference))
+                    it.copy (trials = TrialsState.EnoughTrials(canTellDifference))
                 }
             }
         }

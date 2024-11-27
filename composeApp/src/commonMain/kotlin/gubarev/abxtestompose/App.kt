@@ -22,40 +22,30 @@ fun App(presenter: Presenter) {
     val state by presenter.state.collectAsStateWithLifecycle()
 
     MaterialTheme(colorScheme = lightColorScheme()) {
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Card(Modifier.padding(16.dp)) {
-                Button(onClick = { presenter.playOrPause() }) {
-                    Text(if (state.isPlaying) "Pause" else "Play")
+        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+
+            statisticsCard(state.trialsCount, state.correctAnswersCount, state.trials)
+
+            Card() {
+                Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
+                    Button(onClick = { presenter.playOrPause() }) {
+                        Text(if (state.isPlaying) "Pause" else "Play")
+                    }
+                    playerSlider(
+                        state.sliderProgress
+                    ) { sliderPosition ->
+                        presenter.didChangeSliderProgress(
+                            progress = sliderPosition.toDouble()
+                        )
+                    }
                 }
-                playerSlider(
-                    state.sliderProgress
-                ) { sliderPosition ->
-                    presenter.didChangeSliderProgress(
-                        progress = sliderPosition.toDouble()
-                    )
+                trackChoiceSegmentedControl(state.userChosenTrack) { trackToPlay ->
+                    presenter.didChooseTrack(trackToPlay)
                 }
             }
-            trackChoiceSegmentedControl(state.userChosenTrack) { trackToPlay ->
-                presenter.didChooseTrack(trackToPlay)
-            }
+
             answerButtons { trackCode ->
                 presenter.didTapAnswer(trackCode)
-            }
-            Card() {
-                Text("Total trials: " + state.answersCount)
-                Text("Correct answers: " + state.correctAnswersCount)
-                when (val differenceSate = state.canTellDifference) {
-                    is DifferenceState.EnoughTrials -> {
-                        if (differenceSate.canTellDifference) {
-                            Text("You can tell the difference between tracks")
-                        } else {
-                            Text("You cannot tell the difference between tracks")
-                        }
-                    }
-                    is DifferenceState.NotEnoughTrials-> {
-                        Text("You need to make at least 10 trials to know the result")
-                    }
-                }
             }
         }
     }
@@ -64,15 +54,39 @@ fun App(presenter: Presenter) {
     }
 }
 
+@Composable fun statisticsCard(trialsCount: Int, correctAnswersCount: Int, trials: TrialsState) {
+    Card(Modifier.padding(bottom = 24.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
+            Text("Total trials: " + trialsCount)
+            Text("Correct answers: " + correctAnswersCount)
+            when (val trialsState = trials) {
+                is TrialsState.EnoughTrials -> {
+                    if (trialsState.canTellDifference) {
+                        Text("You can tell the difference between tracks")
+                    } else {
+                        Text("You cannot tell the difference between tracks")
+                    }
+                }
+
+                is TrialsState.NotEnoughTrials -> {
+                    Text("You need to make at least 10 trials to know the result")
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun answerButtons(didTap: (TrackCode) -> Unit) {
-    Text("My answer: ")
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Button(onClick = { didTap(TrackCode.A) }) {
-            Text("X is A")
-        }
-        Button(onClick = { didTap(TrackCode.B) }) {
-            Text("X is B")
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text("My answer: ")
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+            Button(onClick = { didTap(TrackCode.A) }) {
+                Text("X is A")
+            }
+            Button(onClick = { didTap(TrackCode.B) }) {
+                Text("X is B")
+            }
         }
     }
 }
