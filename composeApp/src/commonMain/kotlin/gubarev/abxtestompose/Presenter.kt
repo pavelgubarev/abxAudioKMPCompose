@@ -37,7 +37,6 @@ class Presenter: PresenterInterface {
                 TrackCode.B to "files/Time-50.m4a"
             )
         )
-
     }
 
     private fun setInitialState(tracksToTest: MutableMap<TrackCode, String>) {
@@ -171,5 +170,4 @@ class Presenter: PresenterInterface {
             }
         }
     }
-
 }

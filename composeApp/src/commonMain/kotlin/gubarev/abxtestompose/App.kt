@@ -23,30 +23,13 @@ fun App(presenter: Presenter) {
 
     MaterialTheme(colorScheme = lightColorScheme()) {
         Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-
-            statisticsCard(state.trialsCount, state.correctAnswersCount, state.trials)
-
-            Card() {
-                Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
-                    Button(onClick = { presenter.playOrPause() }) {
-                        Text(if (state.isPlaying) "Pause" else "Play")
-                    }
-                    playerSlider(
-                        state.sliderProgress
-                    ) { sliderPosition ->
-                        presenter.didChangeSliderProgress(
-                            progress = sliderPosition.toDouble()
-                        )
-                    }
-                }
-                trackChoiceSegmentedControl(state.userChosenTrack) { trackToPlay ->
-                    presenter.didChooseTrack(trackToPlay)
-                }
-            }
+            statisticsCard(state)
 
             answerButtons { trackCode ->
                 presenter.didTapAnswer(trackCode)
             }
+
+            player(presenter, state)
         }
     }
     LaunchedEffect(Unit) {
@@ -54,12 +37,37 @@ fun App(presenter: Presenter) {
     }
 }
 
-@Composable fun statisticsCard(trialsCount: Int, correctAnswersCount: Int, trials: TrialsState) {
-    Card(Modifier.padding(bottom = 24.dp)) {
+@Composable
+private fun player(
+    presenter: Presenter,
+    state: ABXTestingState
+) {
+    Card() {
         Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
-            Text("Total trials: " + trialsCount)
-            Text("Correct answers: " + correctAnswersCount)
-            when (val trialsState = trials) {
+            Button(onClick = { presenter.playOrPause() }) {
+                Text(if (state.isPlaying) "Pause" else "Play")
+            }
+            playerSlider(
+                state.sliderProgress
+            ) { sliderPosition ->
+                presenter.didChangeSliderProgress(
+                    progress = sliderPosition.toDouble()
+                )
+            }
+        }
+        trackChoiceSegmentedControl(state.userChosenTrack) { trackToPlay ->
+            presenter.didChooseTrack(trackToPlay)
+        }
+    }
+}
+
+@Composable
+fun statisticsCard(state: ABXTestingState) {
+    Card() {
+        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
+            Text("${state.trialsCount} total trials ")
+            Text("${state.correctAnswersCount} correct answers", Modifier.padding(bottom = 10.dp))
+            when (val trialsState = state.trials) {
                 is TrialsState.EnoughTrials -> {
                     if (trialsState.canTellDifference) {
                         Text("You can tell the difference between tracks")
@@ -69,7 +77,7 @@ fun App(presenter: Presenter) {
                 }
 
                 is TrialsState.NotEnoughTrials -> {
-                    Text("You need to make at least 10 trials to know the result")
+                    Text("You need at least ${trialsToMinCorrect.keys.min()} trials to know the result")
                 }
             }
         }
@@ -78,9 +86,9 @@ fun App(presenter: Presenter) {
 
 @Composable
 fun answerButtons(didTap: (TrackCode) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+    Column(Modifier.fillMaxWidth().padding( start = 16.dp, top = 24.dp, 16.dp, bottom = 24.dp), horizontalAlignment = Alignment.Start) {
         Text("My answer: ")
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+        Column() {
             Button(onClick = { didTap(TrackCode.A) }) {
                 Text("X is A")
             }
