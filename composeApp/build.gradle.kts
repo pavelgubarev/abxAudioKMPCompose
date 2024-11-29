@@ -45,7 +45,13 @@ kotlin {
             implementation(compose.material3)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
+            implementation("io.ktor:ktor-client-core:2.3.5")
         }
+
+        iosMain.dependencies {
+            implementation("io.ktor:ktor-client-darwin:2.3.5") // Darwin engine for iOS
+        }
+
     }
 }
 

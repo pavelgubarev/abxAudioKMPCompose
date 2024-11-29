@@ -15,6 +15,8 @@ class Presenter: PresenterInterface {
     private var audioPlayers: MutableMap<TrackCode, MediaPlayerController> = mutableMapOf()
     private var bothCodes = arrayOf(TrackCode.A, TrackCode.B)
 
+    private val interactor = Interactor()
+
     private val _state = MutableStateFlow(ABXTestingState())
     val state: StateFlow<ABXTestingState> = _state.asStateFlow()
 
@@ -113,6 +115,11 @@ class Presenter: PresenterInterface {
     }
 
     fun onAppear() {
+
+        val handler = FileHandler()
+
+        interactor.downloadExample(handler)
+
         setNextCorrectAnswer()
     }
 
