@@ -6,7 +6,7 @@ data class ABXTestingState(
     var currentCorrectAnswer: TrackCode = TrackCode.A,
     val sliderProgress: Double = 0.0,
     val isPlaying: Boolean = false,
-    var trials: TrialsState = TrialsState.NotEnoughTrials
+    var trials: TrialsState = TrialsState.NotEnoughTrials,
 )
 
 sealed class TrialsState {

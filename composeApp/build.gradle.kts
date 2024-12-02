@@ -34,6 +34,7 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation("androidx.media3:media3-exoplayer:1.3.1")
+            implementation("io.ktor:ktor-client-cio:2.3.5")
         }
         commonMain.dependencies {
             implementation(compose.runtime)

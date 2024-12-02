@@ -1,9 +1,18 @@
 package gubarev.abxtestompose
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlin.random.Random
 
 interface PresenterInterface {
     fun didTimeChangeTo(time: Double, code: TrackCode)
@@ -19,6 +28,12 @@ class Presenter: PresenterInterface {
 
     private val _state = MutableStateFlow(ABXTestingState())
     val state: StateFlow<ABXTestingState> = _state.asStateFlow()
+
+    private val _downloadProgress = MutableStateFlow(0f)
+    val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
+
+    private var viewModelJob = SupervisorJob()
+    protected val viewModelScope = CoroutineScope(Main + viewModelJob )
 
     private val listener = object : MediaPlayerListener {
         override fun onReady() {
@@ -39,6 +54,13 @@ class Presenter: PresenterInterface {
                 TrackCode.B to "files/Time-50.m4a"
             )
         )
+        interactor.downloadProgress.onEach { value ->
+
+            println("on presenter $value")
+
+            _downloadProgress.update { value.toFloat() }
+
+        }.launchIn(viewModelScope)
     }
 
     private fun setInitialState(tracksToTest: MutableMap<TrackCode, String>) {
@@ -88,7 +110,7 @@ class Presenter: PresenterInterface {
 
     private fun setNextCorrectAnswer() {
         _state.update {
-            it.copy( currentCorrectAnswer = if (kotlin.random.Random.nextBoolean()) TrackCode.A else TrackCode.B )
+            it.copy( currentCorrectAnswer = if (Random.nextBoolean()) TrackCode.A else TrackCode.B )
         }
 
         if (state.value.isPlaying) {
@@ -114,13 +136,20 @@ class Presenter: PresenterInterface {
         syncProgress(progress)
     }
 
-    fun onAppear() {
-
+    suspend fun startDownload() {
         val handler = FileHandler()
+        interactor.downloadExample(
+            handler
+        )
+    }
 
-        interactor.downloadExample(handler)
-
+    fun onAppear() {
         setNextCorrectAnswer()
+    }
+
+    fun didDownloadProgressUpdate(newValue: Float) {
+        println(newValue)
+        _downloadProgress.update { newValue }
     }
 
     private fun syncProgress(progress: Double) {
