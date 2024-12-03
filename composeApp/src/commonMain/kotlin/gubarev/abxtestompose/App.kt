@@ -38,17 +38,17 @@ fun App(presenter: Presenter) {
 
             player(presenter, state)
         }
-    }
-    val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) {
-        presenter.onAppear()
-        scope.launch {
-            presenter.startDownload()
+        val scope = rememberCoroutineScope()
+        LaunchedEffect(Unit) {
+            presenter.onAppear()
+              scope.launch { presenter.startDownload()  }
+        }
+        Button(onClick = {scope.launch { presenter.startDownload() }}) {
+            Text("go")
         }
     }
-    Button(onClick = {scope.launch { presenter.startDownload() }}) {
-        Text("go")
-    }
+
+
 }
 
 @Composable
