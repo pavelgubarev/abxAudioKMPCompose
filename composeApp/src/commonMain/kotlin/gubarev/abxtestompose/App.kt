@@ -23,13 +23,8 @@ import kotlinx.coroutines.flow.onEach
 fun App(presenter: Presenter) {
     val state by presenter.state.collectAsStateWithLifecycle()
 
-    val progress by presenter.downloadProgress.collectAsStateWithLifecycle()
-
     MaterialTheme(colorScheme = lightColorScheme()) {
         Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-
-            Text("Progress: ${progress }")
-
             statisticsCard(state)
 
             answerButtons { trackCode ->

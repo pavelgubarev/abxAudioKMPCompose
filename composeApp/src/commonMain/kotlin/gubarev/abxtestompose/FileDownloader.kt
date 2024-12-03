@@ -31,8 +31,6 @@ class ByteArrayBuilder {
 class FileDownloader(private val httpClient: HttpClient = HttpClient()) {
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default
 
-    private val _progressFlow = MutableStateFlow(0)
-    val progressFlow: StateFlow<Int> = _progressFlow
 
     suspend fun downloadFile(
         url: String,
