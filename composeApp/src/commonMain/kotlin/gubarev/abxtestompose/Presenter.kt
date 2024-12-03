@@ -29,9 +29,6 @@ class Presenter: PresenterInterface {
     private val _state = MutableStateFlow(ABXTestingState())
     val state: StateFlow<ABXTestingState> = _state.asStateFlow()
 
-    private val _downloadProgress = MutableStateFlow(0f)
-    val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
-
     private var viewModelJob = SupervisorJob()
     protected val viewModelScope = CoroutineScope(Main + viewModelJob )
 
@@ -136,20 +133,8 @@ class Presenter: PresenterInterface {
         syncProgress(progress)
     }
 
-    suspend fun startDownload() {
-        val handler = FileHandler()
-        interactor.downloadExample(
-            handler
-        )
-    }
-
     fun onAppear() {
         setNextCorrectAnswer()
-    }
-
-    fun didDownloadProgressUpdate(newValue: Float) {
-        println(newValue)
-        _downloadProgress.update { newValue }
     }
 
     private fun syncProgress(progress: Double) {
