@@ -15,8 +15,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.BorderStroke
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.onEach
 
 @Composable
 @Preview
@@ -33,17 +31,11 @@ fun App(presenter: Presenter) {
 
             player(presenter, state)
         }
-        val scope = rememberCoroutineScope()
+
         LaunchedEffect(Unit) {
             presenter.onAppear()
-              scope.launch { presenter.startDownload()  }
-        }
-        Button(onClick = {scope.launch { presenter.startDownload() }}) {
-            Text("go")
         }
     }
-
-
 }
 
 @Composable

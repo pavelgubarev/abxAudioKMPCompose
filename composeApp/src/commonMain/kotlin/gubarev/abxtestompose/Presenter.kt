@@ -1,16 +1,11 @@
 package gubarev.abxtestompose
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlin.random.Random
 
@@ -23,8 +18,6 @@ class Presenter: PresenterInterface {
     private val context = PlatformContext()
     private var audioPlayers: MutableMap<TrackCode, MediaPlayerController> = mutableMapOf()
     private var bothCodes = arrayOf(TrackCode.A, TrackCode.B)
-
-    private val interactor = Interactor()
 
     private val _state = MutableStateFlow(ABXTestingState())
     val state: StateFlow<ABXTestingState> = _state.asStateFlow()
@@ -51,13 +44,6 @@ class Presenter: PresenterInterface {
                 TrackCode.B to "files/Time-50.m4a"
             )
         )
-        interactor.downloadProgress.onEach { value ->
-
-            println("on presenter $value")
-
-            _downloadProgress.update { value.toFloat() }
-
-        }.launchIn(viewModelScope)
     }
 
     private fun setInitialState(tracksToTest: MutableMap<TrackCode, String>) {

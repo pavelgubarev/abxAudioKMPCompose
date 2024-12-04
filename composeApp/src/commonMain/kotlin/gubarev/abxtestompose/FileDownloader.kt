@@ -28,23 +28,20 @@ class ByteArrayBuilder {
     fun toByteArray(): ByteArray = buffer.toByteArray()
 }
 
+
 class FileDownloader(private val httpClient: HttpClient = HttpClient()) {
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default
 
+    suspend fun downloadFile(model: DownloaderModel): String? {
 
-    suspend fun downloadFile(
-        url: String,
-        fileHandler: FileHandler,
-        fileName: String
-    ): String? {
         return withContext(ioDispatcher) {
             try {
-                val response: HttpResponse = httpClient.get(url)
-                val totalBytes = response.contentLength() ?: 0L
+                val response: HttpResponse = httpClient.get(model.url)
+                val totalBytes = (response.contentLength() ?: 0L).toFloat()
                 val byteArray = ByteArrayBuilder()
                 val channel: ByteReadChannel = response.bodyAsChannel()
 
-                var bytesRead = 0L
+                var bytesRead = 0f
                 val buffer = ByteArray(8 * 1024)
 
                 while (!channel.isClosedForRead) {
@@ -52,11 +49,12 @@ class FileDownloader(private val httpClient: HttpClient = HttpClient()) {
                     if (read > 0) {
                         byteArray.write(buffer, 0, read)
                         bytesRead += read
-                        _progressFlow.value = if (totalBytes > 0) ((bytesRead * 100) / totalBytes).toInt() else 0
+                        model.progress.value = if (totalBytes > 0f) (bytesRead / totalBytes) else 0f
                     }
                 }
 
-                fileHandler.saveFile(byteArray.toByteArray(), fileName)
+                model.handler.saveFile(byteArray.toByteArray(), model.fileName)
+
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
