@@ -19,8 +19,7 @@ class LoaderPresenter {
                             it.url,
                             FileHandler(),
                             it.filename,
-                            downloadProgress.first,
-                            path1
+                            downloadProgress.first
                         )
                     )
                 }
