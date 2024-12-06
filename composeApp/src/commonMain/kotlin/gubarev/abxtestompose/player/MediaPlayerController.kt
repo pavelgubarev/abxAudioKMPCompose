@@ -4,7 +4,7 @@ expect class MediaPlayerController(platformContext: PlatformContext) {
 
     fun getCurrentTime(): Double
 
-    fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: PresenterInterface, code: TrackCode)
+    fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: ABXTestingPresenterInterface, code: TrackCode)
 
     fun start()
 

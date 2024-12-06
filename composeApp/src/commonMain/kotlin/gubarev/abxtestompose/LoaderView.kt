@@ -18,14 +18,18 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 @Preview
-fun LoaderView(presenter: LoaderPresenter, onNavigateToTesting: (String) -> Unit) {
+fun LoaderView(presenter: LoaderPresenter, onNavigateToTesting: (Map<TrackCode, String>) -> Unit) {
 
     val progressA by presenter.downloadProgress.first.collectAsStateWithLifecycle()
     val progressB by presenter.downloadProgress.second.collectAsStateWithLifecycle()
 
+    var downloadedTracks: Map<TrackCode, String> = mapOf()
+
     MaterialTheme(colorScheme = lightColorScheme()) {
         Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
-            Button({ presenter.startDownload() }) {
+            Button({ presenter.download() { tracks ->
+                downloadedTracks = tracks
+            } }) {
                 Text("Load")
             }
             Text("Sample A")
@@ -33,7 +37,7 @@ fun LoaderView(presenter: LoaderPresenter, onNavigateToTesting: (String) -> Unit
             Text("Sample B")
             LinearProgressIndicator( { progressB }, Modifier.fillMaxWidth())
 
-            Button(onClick = { onNavigateToTesting("Ha") }) {
+            Button(onClick = { onNavigateToTesting(downloadedTracks ?: mapOf()) }) {
                 Text(text = "Go Testing")
             }
         }

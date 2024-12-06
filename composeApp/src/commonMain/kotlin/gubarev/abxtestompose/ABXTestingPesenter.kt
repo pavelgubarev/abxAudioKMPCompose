@@ -9,11 +9,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.random.Random
 
-interface PresenterInterface {
+interface ABXTestingPresenterInterface {
     fun didTimeChangeTo(time: Double, code: TrackCode)
 }
 
-class Presenter: PresenterInterface {
+class ABXTestingPresenter: ABXTestingPresenterInterface {
 
     private val context = PlatformContext()
     private var audioPlayers: MutableMap<TrackCode, MediaPlayerController> = mutableMapOf()
@@ -37,16 +37,7 @@ class Presenter: PresenterInterface {
         }
     }
 
-    init {
-        setInitialState(
-            mutableMapOf(
-                TrackCode.A to "files/Time-30.m4a",
-                TrackCode.B to "files/Time-50.m4a"
-            )
-        )
-    }
-
-    private fun setInitialState(tracksToTest: MutableMap<TrackCode, String>) {
+    fun configure(tracksToTest: Map<TrackCode, String>) {
         bothCodes.forEach { code ->
             val player = MediaPlayerController(platformContext = context)
             player.prepare(tracksToTest[code]!!, listener = listener, delegate = this, code = code)

@@ -18,7 +18,7 @@ import androidx.compose.foundation.BorderStroke
 
 @Composable
 @Preview
-fun App(presenter: Presenter) {
+fun ABXTestingView(presenter: ABXTestingPresenter) {
     val state by presenter.state.collectAsStateWithLifecycle()
 
     MaterialTheme(colorScheme = lightColorScheme()) {
@@ -40,7 +40,7 @@ fun App(presenter: Presenter) {
 
 @Composable
 private fun player(
-    presenter: Presenter,
+    presenter: ABXTestingPresenter,
     state: ABXTestingState
 ) {
     Card() {

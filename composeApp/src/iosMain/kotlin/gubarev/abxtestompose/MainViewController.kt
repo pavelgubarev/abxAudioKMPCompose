@@ -7,23 +7,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
 fun MainViewController() = ComposeUIViewController {
-//    val presenter = LoaderPresenter()
-//
-//    LoaderView(presenter)
-//
-
     val navController: NavHostController = rememberNavController()
 
     NavHost(
         navController = navController,
-        startDestination = NavigationScreens.Loader.title,
+        startDestination = Loader,
     ) {
-        composable(route = NavigationScreens.Loader.title) {
-            LoaderView(presenter = LoaderPresenter(), onNavigateToTesting = { navController.navigate(route = NavigationScreens.Testing.title) })
+        composable(route = Loader.toString()) {
+            LoaderView(presenter = LoaderPresenter(), onNavigateToTesting = { tracksFiles ->
+                navController.navigate(route = Testing(tracksFiles))
+            })
         }
-        composable(route = NavigationScreens.Testing.title) {
-            App(presenter = Presenter())
+        composable(route = Testing.toString()) {
+            val presenter = ABXTestingPresenter()
+            ABXTestingView(presenter = presenter)
         }
     }
-
 }

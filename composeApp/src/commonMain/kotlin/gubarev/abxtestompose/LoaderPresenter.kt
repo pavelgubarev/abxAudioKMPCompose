@@ -8,7 +8,7 @@ class LoaderPresenter {
     private val interactor = LoaderInteractor()
     var downloadProgress= Pair(MutableStateFlow(0f), MutableStateFlow(0f))
 
-    fun startDownload() {
+    fun download(onFinish: (Map<TrackCode, String>) -> Unit) {
         val scope = CoroutineScope(Dispatchers.Default)
         scope.launch {
             //TODO: сделать цикл
@@ -36,10 +36,15 @@ class LoaderPresenter {
                     )
                 }
             }
-            val result1 = job1.await()
-            val result2 = job2.await()
+            val result1: String = job1.await().toString()
+            val result2: String = job2.await().toString()
 
-            println("Results: $result1")
+            onFinish(
+                mapOf(
+                    TrackCode.A to result1,
+                    TrackCode.B to result2
+                )
+            )
         }
     }
 }

@@ -46,7 +46,7 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
     var code: TrackCode = TrackCode.A
 
     @OptIn(ExperimentalNativeApi::class)
-    private var delegate: WeakReference<PresenterInterface>? = null
+    private var delegate: WeakReference<ABXTestingPresenterInterface>? = null
 
     private var cmtimeStruct: CValue<CMTime> = CMTimeMakeWithSeconds(0.0, NSEC_PER_SEC.toInt())
 
@@ -55,7 +55,7 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
     }
 
     @OptIn(ExperimentalResourceApi::class, ExperimentalNativeApi::class)
-    actual fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: PresenterInterface, code: TrackCode) {
+    actual fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: ABXTestingPresenterInterface, code: TrackCode) {
         this.code = code
         this.listener = listener
         this.delegate = WeakReference(delegate)
