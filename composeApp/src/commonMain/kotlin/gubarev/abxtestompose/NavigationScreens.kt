@@ -6,4 +6,4 @@ import kotlinx.serialization.Serializable
 object Loader
 
 @Serializable
-data class Testing(val tracksFiles: Map<TrackCode, String> = mapOf())
+object Testing

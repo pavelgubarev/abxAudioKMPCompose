@@ -3,12 +3,14 @@ package gubarev.abxtestompose
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 
+typealias TracksToTest = Map<TrackCode, String>
+
 class LoaderPresenter {
 
     private val interactor = LoaderInteractor()
     var downloadProgress= Pair(MutableStateFlow(0f), MutableStateFlow(0f))
 
-    fun download(onFinish: (Map<TrackCode, String>) -> Unit) {
+    fun download(onFinish: (TracksToTest) -> Unit) {
         val scope = CoroutineScope(Dispatchers.Default)
         scope.launch {
             //TODO: сделать цикл
