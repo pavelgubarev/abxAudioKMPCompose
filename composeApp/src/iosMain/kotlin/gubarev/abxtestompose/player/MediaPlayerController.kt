@@ -59,12 +59,8 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         this.code = code
         this.listener = listener
         this.delegate = WeakReference(delegate)
-//        val url = NSURL(string = pathSource)
         startTimeObserver()
-//        player.replaceCurrentItemWithPlayerItem(AVPlayerItem(url))
-
-        val item = Res.getUri(pathSource)
-        val itemURL =  NSURL.URLWithString(URLString = item)
+        val itemURL =  NSURL.URLWithString(URLString = pathSource)
         player.replaceCurrentItemWithPlayerItem(itemURL?.let { AVPlayerItem(it) })
     }
 

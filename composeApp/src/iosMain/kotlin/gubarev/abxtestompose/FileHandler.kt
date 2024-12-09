@@ -28,6 +28,8 @@ actual class FileHandler actual constructor() {
             fclose(file)
         }
 
-        return fileURL?.absoluteString ?: ""
+        return fileURL.toString() ?: ""
+
+//        return fileURL?.absoluteString ?: ""
     }
 }

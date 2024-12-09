@@ -30,28 +30,38 @@ fun LoaderView(presenter: LoaderPresenter, onNavigateToTesting: (TracksToTest) -
     var downloadedTracks: TracksToTest = mapOf()
 
     MaterialTheme(colorScheme = lightColorScheme()) {
-        var isButtonEnabled by remember { mutableStateOf(false) }
+        var isTracksLoaded by remember { mutableStateOf(false) }
+        var isDownloading by remember { mutableStateOf(false) }
 
         Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
             Card(Modifier.padding(bottom = 24.dp)) {
-                Button({
-                    presenter.download() { tracks ->
-                        downloadedTracks = tracks
-                        isButtonEnabled = true
+                Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
+                    Button(
+                        onClick = {
+                            presenter.download() { tracks ->
+                                downloadedTracks = tracks
+                                isTracksLoaded = true
+                            }
+                            isDownloading = true
+                        },
+                        enabled = !isDownloading,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    {
+                        Text(if (isDownloading) "Loading, wait...." else "Load sample tracks")
+                    }
+                    if (isDownloading) {
+                        Text("Sample A", Modifier.padding(bottom = 8.dp))
+                        LinearProgressIndicator({ progressA }, Modifier.fillMaxWidth())
+                        Text("Sample B", Modifier.padding(bottom = 8.dp))
+                        LinearProgressIndicator({ progressB }, Modifier.fillMaxWidth())
                     }
                 }
-                ) {
-                    Text("Load")
-                }
-                Text("Sample A", Modifier.padding(bottom = 8.dp))
-                LinearProgressIndicator( { progressA }, Modifier.fillMaxWidth())
-                Text("Sample B")
-                LinearProgressIndicator( { progressB }, Modifier.fillMaxWidth())
             }
 
             Button(
                 onClick = { onNavigateToTesting(downloadedTracks ?: mapOf()) },
-                enabled = isButtonEnabled
+                enabled = isTracksLoaded
             ) {
                 Text(text = "Go Testing")
             }
