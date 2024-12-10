@@ -40,8 +40,9 @@ class ABXTestingPresenter: ABXTestingPresenterInterface {
     fun configure(tracksToTest: TracksToTest) {
         bothCodes.forEach { code ->
             val player = MediaPlayerController(platformContext = context)
-            //TODO
-            player.prepare(tracksToTest[code]!!, listener = listener, delegate = this, code = code)
+            tracksToTest[code]?.let { track ->
+                player.prepare(track, listener = listener, delegate = this, code = code)
+            }
             audioPlayers[code] = player
         }
     }
