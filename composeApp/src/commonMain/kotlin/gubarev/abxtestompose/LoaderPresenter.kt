@@ -5,48 +5,47 @@ import kotlinx.coroutines.flow.MutableStateFlow
 
 typealias TracksToTest = Map<TrackCode, String>
 
+sealed class DownloadResult {
+    object Failure : DownloadResult()
+    data class Success(val tracks: TracksToTest): DownloadResult()
+}
+
 class LoaderPresenter {
 
     private val interactor = LoaderInteractor()
     var downloadProgress= Pair(MutableStateFlow(0f), MutableStateFlow(0f))
 
-    fun download(onFinish: (TracksToTest) -> Unit) {
-        val scope = CoroutineScope(Dispatchers.Default)
-        scope.launch {
-            //TODO: сделать цикл
-            val job1 = async(Dispatchers.IO) {
-                audioSamples.first().let {
-                    interactor.downloadFile(
-                        DownloaderModel(
-                            it.url,
-                            FileHandler(),
-                            it.filename,
-                            downloadProgress.first
-                        )
-                    )
-                }
-            }
-            val job2 = async(Dispatchers.IO) {
-                audioSamples[1].let  {
-                    interactor.downloadFile(
-                        DownloaderModel(
-                            it.url,
-                            FileHandler(),
-                            it.filename,
-                            downloadProgress.second
-                        )
-                    )
-                }
-            }
-            val result1: String = job1.await().toString()
-            val result2: String = job2.await().toString()
+    fun download(onFinish: (DownloadResult) -> Unit) {
 
-            onFinish(
-                mapOf(
-                    TrackCode.A to result1,
-                    TrackCode.B to result2
+        val scope = CoroutineScope(Dispatchers.Default)
+        val jobs = ArrayList<Deferred<String?>>()
+        scope.launch {
+            audioSamples.toList().forEachIndexed { index, sample ->
+                jobs.add(
+                    async(Dispatchers.IO) {
+                    interactor.downloadFile(
+                        DownloaderModel(
+                            sample.url,
+                            FileHandler(),
+                            sample.filename,
+                            downloadProgress.toList()[index]
+                        )
+                    )
+                }
                 )
-            )
+            }
+            val results = jobs.awaitAll().mapNotNull{ it }
+            if (results.count() == 2) {
+                onFinish(DownloadResult.Success(
+                    mapOf(
+                        TrackCode.A to results[0],
+                        TrackCode.B to results[1]
+                    )
+                )
+                )
+            } else {
+                onFinish(DownloadResult.Failure)
+            }
         }
     }
 }

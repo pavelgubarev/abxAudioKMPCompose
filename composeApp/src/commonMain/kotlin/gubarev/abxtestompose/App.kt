@@ -10,7 +10,6 @@ import androidx.navigation.toRoute
 @Composable
 fun app() {
     val navController: NavHostController = rememberNavController()
-
     var tracksToTest: TracksToTest = mapOf()
 
     NavHost(

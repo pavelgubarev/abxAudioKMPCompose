@@ -5,7 +5,7 @@ data class AudioSample(
     val filename: String = ""
 )
 
-val audioSamples = arrayOf(
+val audioSamples = Pair(
     AudioSample(
         url = "https://gubarev.ru/abx_audio_samples/Time-30.m4a",
         filename = "Time-30.m4a"
@@ -13,5 +13,5 @@ val audioSamples = arrayOf(
     AudioSample(
         url = "https://gubarev.ru/abx_audio_samples/Time-50.m4a",
         filename = "Time-50.m4a"
-    ),
+    )
 )

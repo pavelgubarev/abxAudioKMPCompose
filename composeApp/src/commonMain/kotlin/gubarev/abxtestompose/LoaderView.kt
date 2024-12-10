@@ -38,9 +38,16 @@ fun LoaderView(presenter: LoaderPresenter, onNavigateToTesting: (TracksToTest) -
                 Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
                     Button(
                         onClick = {
-                            presenter.download() { tracks ->
-                                downloadedTracks = tracks
-                                isTracksLoaded = true
+                            presenter.download() { result ->
+                                when(result) {
+                                    is DownloadResult.Success -> {
+                                        downloadedTracks = result.tracks
+                                        isTracksLoaded = true
+                                    }
+                                    is DownloadResult.Failure -> {
+                                        //TODO
+                                    }
+                                }
                             }
                             isDownloading = true
                         },
@@ -60,7 +67,7 @@ fun LoaderView(presenter: LoaderPresenter, onNavigateToTesting: (TracksToTest) -
             }
 
             Button(
-                onClick = { onNavigateToTesting(downloadedTracks ?: mapOf()) },
+                onClick = { onNavigateToTesting(downloadedTracks) },
                 enabled = isTracksLoaded
             ) {
                 Text(text = "Go Testing")
