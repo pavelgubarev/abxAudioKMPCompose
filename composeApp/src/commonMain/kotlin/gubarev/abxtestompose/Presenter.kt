@@ -30,21 +30,17 @@ class Presenter: PresenterInterface {
         }
     }
 
-    init {
-        setInitialState(
-            mutableMapOf(
-                TrackCode.A to "files/Time-30.m4a",
-                TrackCode.B to "files/Time-50.m4a"
-            )
-        )
-    }
-
-    private fun setInitialState(tracksToTest: MutableMap<TrackCode, String>) {
+    fun loadTracks(pathA: String, pathB: String) {
+        audioPlayers.values.forEach { it.release() }
+        audioPlayers.clear()
+        _state.value = ABXTestingState(tracksLoaded = true)
         bothCodes.forEach { code ->
+            val path = if (code == TrackCode.A) pathA else pathB
             val player = MediaPlayerController(platformContext = context)
-            player.prepare(tracksToTest[code]!!, listener = listener, delegate = this, code = code)
+            player.prepare(path, listener = listener, delegate = this, code = code)
             audioPlayers[code] = player
         }
+        setNextCorrectAnswer()
     }
 
     fun didChooseTrack(chosenTrack: TrackCode) {
