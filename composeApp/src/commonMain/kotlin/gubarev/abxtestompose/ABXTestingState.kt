@@ -3,6 +3,8 @@ data class ABXTestingState(
     val tracksLoaded: Boolean = false,
     val pathA: String? = null,
     val pathB: String? = null,
+    val metadataA: AudioMetadata? = null,
+    val metadataB: AudioMetadata? = null,
     val userChosenTrack: TrackCode = TrackCode.A,
     val trialsCount: Int = 0,
     val correctAnswersCount: Int = 0,

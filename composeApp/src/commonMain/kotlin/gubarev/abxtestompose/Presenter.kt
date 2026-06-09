@@ -1,9 +1,13 @@
 package gubarev.abxtestompose
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 interface PresenterInterface {
     fun didTimeChangeTo(time: Double, code: TrackCode)
@@ -13,6 +17,7 @@ class Presenter: PresenterInterface {
 
     private val context = PlatformContext()
     private val settings = AppSettings()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var audioPlayers: MutableMap<TrackCode, MediaPlayerController> = mutableMapOf()
     private var bothCodes = arrayOf(TrackCode.A, TrackCode.B)
 
@@ -52,6 +57,11 @@ class Presenter: PresenterInterface {
         settings.set("path_a", pathA)
         settings.set("path_b", pathB)
         setNextCorrectAnswer()
+        scope.launch {
+            val metaA = getAudioMetadata(pathA)
+            val metaB = getAudioMetadata(pathB)
+            _state.update { it.copy(metadataA = metaA, metadataB = metaB) }
+        }
     }
 
     fun didChooseTrack(chosenTrack: TrackCode) {

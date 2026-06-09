@@ -57,14 +57,13 @@ fun App(presenter: Presenter) {
 private fun MainScreen(presenter: Presenter, state: ABXTestingState, onOpenFiles: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (state.tracksLoaded && state.pathA != null && state.pathB != null) {
-            Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Track A: ${state.pathA.substringAfterLast('/')}", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    Text("Track B: ${state.pathB.substringAfterLast('/')}", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    TrackInfo("Track A", state.pathA, state.metadataA)
+                    Spacer(Modifier.height(8.dp))
+                    TrackInfo("Track B", state.pathB, state.metadataB)
                     Spacer(Modifier.height(8.dp))
                     Button(onClick = onOpenFiles) { Text("Change…") }
                 }
-            }
         } else {
             Button(onClick = onOpenFiles) { Text("Open files…") }
         }
@@ -84,22 +83,33 @@ private fun MainScreen(presenter: Presenter, state: ABXTestingState, onOpenFiles
 }
 
 @Composable
+private fun TrackInfo(label: String, path: String, metadata: AudioMetadata?) {
+    Text("$label: ${path.substringAfterLast('/')}", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+    val detail = metadata?.displayString()?.takeIf { it.isNotEmpty() }
+    if (detail != null) {
+        Text(detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
 private fun player(
     presenter: Presenter,
     state: ABXTestingState
 ) {
-    Card {
-        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
-            Text("Trial ${state.trialsCount + 1}", style = MaterialTheme.typography.titleMedium)
-            Button(onClick = { presenter.playOrPause() }) {
-                Text(if (state.isPlaying) "Pause" else "Play")
+    Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
+        Text("Trial ${state.trialsCount + 1}", style = MaterialTheme.typography.titleMedium)
+        Card {
+            Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
+                Button(onClick = { presenter.playOrPause() }) {
+                    Text(if (state.isPlaying) "Pause" else "Play")
+                }
+                playerSlider(state.sliderProgress) { sliderPosition ->
+                    presenter.didChangeSliderProgress(progress = sliderPosition.toDouble())
+                }
             }
-            playerSlider(state.sliderProgress) { sliderPosition ->
-                presenter.didChangeSliderProgress(progress = sliderPosition.toDouble())
+            trackChoiceSegmentedControl(state.userChosenTrack) { trackToPlay ->
+                presenter.didChooseTrack(trackToPlay)
             }
-        }
-        trackChoiceSegmentedControl(state.userChosenTrack) { trackToPlay ->
-            presenter.didChooseTrack(trackToPlay)
         }
     }
 }
@@ -108,8 +118,7 @@ private fun player(
 fun statisticsCard(state: ABXTestingState) {
     Card {
         Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
-            Text("${state.trialsCount} total trials ")
-            Text("${state.correctAnswersCount} correct answers", Modifier.padding(bottom = 10.dp))
+            Text("${state.correctAnswersCount}/${state.trialsCount}", style = MaterialTheme.typography.displayMedium)
             when (val trialsState = state.trials) {
                 is TrialsState.EnoughTrials -> {
                     if (trialsState.canTellDifference) {

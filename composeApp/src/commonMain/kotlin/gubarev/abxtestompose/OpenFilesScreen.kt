@@ -14,19 +14,40 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+private sealed interface PickState {
+    data object None : PickState
+    data object Validating : PickState
+    data class Valid(val path: String) : PickState
+    data object Invalid : PickState
+}
 
 @Composable
 fun OpenFilesScreen(
     onLoad: (pathA: String, pathB: String) -> Unit,
     onBack: () -> Unit
 ) {
-    var pathA by remember { mutableStateOf<String?>(null) }
-    var pathB by remember { mutableStateOf<String?>(null) }
+    var stateA by remember { mutableStateOf<PickState>(PickState.None) }
+    var stateB by remember { mutableStateOf<PickState>(PickState.None) }
+
+    val scope = rememberCoroutineScope()
+
+    fun pick(onResult: (PickState) -> Unit): (String) -> Unit = { path ->
+        onResult(PickState.Validating)
+        scope.launch {
+            val valid = withContext(Dispatchers.Default) { validateAudioFile(path) }
+            onResult(if (valid) PickState.Valid(path) else PickState.Invalid)
+        }
+    }
 
     Column(
         Modifier.fillMaxWidth().padding(16.dp),
@@ -36,21 +57,14 @@ fun OpenFilesScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        TrackFileCard(
-            trackLabel = "Track A",
-            selectedPath = pathA,
-            onFilePicked = { pathA = it }
-        )
-
+        TrackFileCard(label = "Track A", state = stateA, onFilePicked = pick { stateA = it })
         Spacer(Modifier.height(16.dp))
-
-        TrackFileCard(
-            trackLabel = "Track B",
-            selectedPath = pathB,
-            onFilePicked = { pathB = it }
-        )
+        TrackFileCard(label = "Track B", state = stateB, onFilePicked = pick { stateB = it })
 
         Spacer(Modifier.height(32.dp))
+
+        val pathA = (stateA as? PickState.Valid)?.path
+        val pathB = (stateB as? PickState.Valid)?.path
 
         Button(
             onClick = { onLoad(pathA!!, pathB!!) },
@@ -60,27 +74,34 @@ fun OpenFilesScreen(
         }
 
         Spacer(Modifier.height(8.dp))
-
-        TextButton(onClick = onBack) {
-            Text("Back")
-        }
+        TextButton(onClick = onBack) { Text("Back") }
     }
 }
 
 @Composable
-private fun TrackFileCard(trackLabel: String, selectedPath: String?, onFilePicked: (String) -> Unit) {
+private fun TrackFileCard(label: String, state: PickState, onFilePicked: (String) -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Text(trackLabel, style = MaterialTheme.typography.titleMedium)
+            Text(label, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
-            FilePickerButton(label = "Select file…", onFilePicked = onFilePicked)
-            if (selectedPath != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = selectedPath.substringAfterLast('/'),
+            FilePickerButton(
+                label = if (state is PickState.None) "Select file…" else "Change file…",
+                onFilePicked = onFilePicked
+            )
+            Spacer(Modifier.height(4.dp))
+            when (state) {
+                is PickState.None -> {}
+                is PickState.Validating -> Text("Checking…", style = MaterialTheme.typography.bodySmall)
+                is PickState.Valid -> Text(
+                    state.path.substringAfterLast('/'),
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+                is PickState.Invalid -> Text(
+                    "Not a playable audio file",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
         }
