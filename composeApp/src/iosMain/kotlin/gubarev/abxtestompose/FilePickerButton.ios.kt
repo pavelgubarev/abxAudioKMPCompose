@@ -19,7 +19,7 @@ actual fun FilePickerButton(label: String, onFilePicked: (String) -> Unit) {
     Button(onClick = {
         val picker = UIDocumentPickerViewController(
             forOpeningContentTypes = listOf(UTTypeAudio),
-            asCopy = true
+            asCopy = false
         )
         picker.delegate = delegate
         picker.allowsMultipleSelection = false
@@ -39,6 +39,7 @@ private class DocumentPickerDelegate : NSObject(), UIDocumentPickerDelegateProto
         didPickDocumentsAtURLs: List<*>
     ) {
         val url = didPickDocumentsAtURLs.firstOrNull() as? NSURL ?: return
+        url.startAccessingSecurityScopedResource()
         url.absoluteString?.let { callback?.invoke(it) }
     }
 

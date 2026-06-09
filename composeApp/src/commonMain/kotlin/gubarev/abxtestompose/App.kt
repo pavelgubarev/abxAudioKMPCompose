@@ -56,8 +56,17 @@ fun App(presenter: Presenter) {
 @Composable
 private fun MainScreen(presenter: Presenter, state: ABXTestingState, onOpenFiles: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Button(onClick = onOpenFiles) {
-            Text("Open files…")
+        if (state.tracksLoaded && state.pathA != null && state.pathB != null) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Track A: ${state.pathA.substringAfterLast('/')}", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Text("Track B: ${state.pathB.substringAfterLast('/')}", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = onOpenFiles) { Text("Change…") }
+                }
+            }
+        } else {
+            Button(onClick = onOpenFiles) { Text("Open files…") }
         }
 
         Spacer(Modifier.height(16.dp))

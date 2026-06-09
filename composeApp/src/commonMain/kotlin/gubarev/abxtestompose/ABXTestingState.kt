@@ -1,6 +1,8 @@
 package gubarev.abxtestompose
 data class ABXTestingState(
     val tracksLoaded: Boolean = false,
+    val pathA: String? = null,
+    val pathB: String? = null,
     val userChosenTrack: TrackCode = TrackCode.A,
     val trialsCount: Int = 0,
     val correctAnswersCount: Int = 0,

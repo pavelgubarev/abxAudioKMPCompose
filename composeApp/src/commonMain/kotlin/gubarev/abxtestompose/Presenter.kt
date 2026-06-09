@@ -12,6 +12,7 @@ interface PresenterInterface {
 class Presenter: PresenterInterface {
 
     private val context = PlatformContext()
+    private val settings = AppSettings()
     private var audioPlayers: MutableMap<TrackCode, MediaPlayerController> = mutableMapOf()
     private var bothCodes = arrayOf(TrackCode.A, TrackCode.B)
 
@@ -30,16 +31,26 @@ class Presenter: PresenterInterface {
         }
     }
 
+    init {
+        val savedA = settings.get("path_a")
+        val savedB = settings.get("path_b")
+        if (savedA != null && savedB != null) {
+            loadTracks(savedA, savedB)
+        }
+    }
+
     fun loadTracks(pathA: String, pathB: String) {
         audioPlayers.values.forEach { it.release() }
         audioPlayers.clear()
-        _state.value = ABXTestingState(tracksLoaded = true)
+        _state.value = ABXTestingState(tracksLoaded = true, pathA = pathA, pathB = pathB)
         bothCodes.forEach { code ->
             val path = if (code == TrackCode.A) pathA else pathB
             val player = MediaPlayerController(platformContext = context)
             player.prepare(path, listener = listener, delegate = this, code = code)
             audioPlayers[code] = player
         }
+        settings.set("path_a", pathA)
+        settings.set("path_b", pathB)
         setNextCorrectAnswer()
     }
 

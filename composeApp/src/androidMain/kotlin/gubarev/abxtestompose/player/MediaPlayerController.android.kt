@@ -12,5 +12,7 @@ actual class PlatformContext actual constructor() {
         fun init(context: Context) {
             appContext = context.applicationContext
         }
+
+        fun getContext(): Context? = appContext
     }
 }

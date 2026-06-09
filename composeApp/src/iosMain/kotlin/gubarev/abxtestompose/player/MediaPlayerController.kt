@@ -62,7 +62,7 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         startTimeObserver()
 
         val itemURL = if (pathSource.startsWith("file://") || pathSource.startsWith("http://") || pathSource.startsWith("https://")) {
-            NSURL.URLWithString(URLString = pathSource)
+            NSURL.URLWithString(URLString = pathSource)?.also { it.startAccessingSecurityScopedResource() }
         } else {
             NSURL.URLWithString(URLString = Res.getUri(pathSource))
         }
