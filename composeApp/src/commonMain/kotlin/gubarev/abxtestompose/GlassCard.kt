@@ -1,0 +1,7 @@
+package gubarev.abxtestompose
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+
+@Composable
+expect fun GlassCard(modifier: Modifier = Modifier, content: @Composable () -> Unit)

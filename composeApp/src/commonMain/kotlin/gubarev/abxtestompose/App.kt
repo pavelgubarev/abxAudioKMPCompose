@@ -3,19 +3,26 @@ package gubarev.abxtestompose
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.Slider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,12 +34,11 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 private enum class Screen { Main, OpenFiles }
 
 @Composable
-@Preview
 fun App(presenter: Presenter) {
     val state by presenter.state.collectAsStateWithLifecycle()
     var screen by remember { mutableStateOf(Screen.Main) }
 
-    MaterialTheme(colorScheme = lightColorScheme()) {
+    AppTheme {
         when (screen) {
             Screen.Main -> MainScreen(
                 presenter = presenter,
@@ -57,13 +63,15 @@ fun App(presenter: Presenter) {
 private fun MainScreen(presenter: Presenter, state: ABXTestingState, onOpenFiles: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (state.tracksLoaded && state.pathA != null && state.pathB != null) {
-                Column(Modifier.padding(16.dp)) {
+            GlassCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(16.dp)) {
                     TrackInfo("Track A", state.pathA, state.metadataA)
                     Spacer(Modifier.height(8.dp))
                     TrackInfo("Track B", state.pathB, state.metadataB)
                     Spacer(Modifier.height(8.dp))
                     Button(onClick = onOpenFiles) { Text("Change…") }
                 }
+            }
         } else {
             Button(onClick = onOpenFiles) { Text("Open files…") }
         }
@@ -98,17 +106,34 @@ private fun player(
 ) {
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
         Text("Trial ${state.trialsCount + 1}", style = MaterialTheme.typography.titleMedium)
-        Card {
-            Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
-                Button(onClick = { presenter.playOrPause() }) {
-                    Text(if (state.isPlaying) "Pause" else "Play")
+        GlassCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    trackChoiceSegmentedControl(state.userChosenTrack) { trackToPlay ->
+                        presenter.didChooseTrack(trackToPlay)
+                    }
+                    FilledIconButton(
+                        onClick = { presenter.playOrPause() },
+                        modifier = Modifier.size(88.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    ) {
+                        Icon(
+                            imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            contentDescription = if (state.isPlaying) "Pause" else "Play",
+                            modifier = Modifier.size(52.dp)
+                        )
+                    }
                 }
                 playerSlider(state.sliderProgress) { sliderPosition ->
                     presenter.didChangeSliderProgress(progress = sliderPosition.toDouble())
                 }
-            }
-            trackChoiceSegmentedControl(state.userChosenTrack) { trackToPlay ->
-                presenter.didChooseTrack(trackToPlay)
             }
         }
     }
@@ -116,7 +141,6 @@ private fun player(
 
 @Composable
 fun statisticsCard(state: ABXTestingState) {
-    Card {
         Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
             Text("${state.correctAnswersCount}/${state.trialsCount}", style = MaterialTheme.typography.displayMedium)
             when (val trialsState = state.trials) {
@@ -132,23 +156,25 @@ fun statisticsCard(state: ABXTestingState) {
                 }
             }
         }
-    }
 }
 
 @Composable
 fun answerButtons(didTap: (TrackCode) -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 24.dp),
-        horizontalAlignment = Alignment.Start
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("My answer: ")
-        Column {
-            Button(onClick = { didTap(TrackCode.A) }) {
-                Text("X is A")
-            }
-            Button(onClick = { didTap(TrackCode.B) }) {
-                Text("X is B")
-            }
+        Button(
+            onClick = { didTap(TrackCode.A) },
+            modifier = Modifier.weight(1f).height(64.dp),
+        ) {
+            Text("X is A", style = MaterialTheme.typography.titleMedium)
+        }
+        Button(
+            onClick = { didTap(TrackCode.B) },
+            modifier = Modifier.weight(1f).height(64.dp),
+        ) {
+            Text("X is B", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -160,6 +186,27 @@ fun playerSlider(sliderPosition: Double, onValueChange: (Float) -> Unit) {
         onValueChange = { onValueChange(it) },
         valueRange = 0f..100f
     )
+}
+
+@Composable
+@Preview
+private fun AppPreview() {
+    val state = ABXTestingState(
+        tracksLoaded = true,
+        pathA = "file:///music/track_a.flac",
+        pathB = "file:///music/track_b.flac",
+        metadataA = AudioMetadata(1411, 44100, 16),
+        metadataB = AudioMetadata(320, 44100, null),
+        trialsCount = 5,
+        correctAnswersCount = 3,
+    )
+    AppTheme {
+        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            statisticsCard(state)
+            Spacer(Modifier.height(16.dp))
+            answerButtons {}
+        }
+    }
 }
 
 @Composable
