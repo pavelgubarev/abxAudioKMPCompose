@@ -1,7 +1,9 @@
 package gubarev.abxtestompose
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,7 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.Slider
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -61,6 +67,9 @@ fun App(presenter: Presenter) {
 
 @Composable
 private fun MainScreen(presenter: Presenter, state: ABXTestingState, onOpenFiles: () -> Unit) {
+    DisposableEffect(Unit) {
+        onDispose { presenter.stopPlayback() }
+    }
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (state.tracksLoaded && state.pathA != null && state.pathB != null) {
             GlassCard(Modifier.fillMaxWidth()) {
@@ -105,9 +114,9 @@ private fun player(
     state: ABXTestingState
 ) {
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
-        Text("Trial ${state.trialsCount + 1}", style = MaterialTheme.typography.titleMedium)
         GlassCard(Modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Text("Trial ${state.trialsCount + 1}", style = MaterialTheme.typography.titleMedium)
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -152,7 +161,7 @@ fun statisticsCard(state: ABXTestingState) {
                     }
                 }
                 is TrialsState.NotEnoughTrials -> {
-                    Text("You need at least ${trialsToMinCorrect.keys.min()} trials to know the result")
+                    Text("You need to make at least ${trialsToMinCorrect.keys.min()} trials to know the result")
                 }
             }
         }
@@ -179,12 +188,27 @@ fun answerButtons(didTap: (TrackCode) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun playerSlider(sliderPosition: Double, onValueChange: (Float) -> Unit) {
+    val trackColor = MaterialTheme.colorScheme.onSurface
     Slider(
         value = sliderPosition.toFloat(),
         onValueChange = { onValueChange(it) },
-        valueRange = 0f..100f
+        valueRange = 0f..100f,
+        colors = SliderDefaults.colors(
+            thumbColor = trackColor,
+            activeTrackColor = trackColor,
+            inactiveTrackColor = trackColor.copy(alpha = 0.15f)
+        ),
+        thumb = {
+            Box(
+                Modifier
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(trackColor)
+            )
+        }
     )
 }
 

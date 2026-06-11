@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 private sealed interface PickState {
     data object None : PickState
@@ -30,6 +32,8 @@ private sealed interface PickState {
     data object Invalid : PickState
 }
 
+private const val MAX_DURATION_DIFF_SECONDS = 1.0
+
 @Composable
 fun OpenFilesScreen(
     onLoad: (pathA: String, pathB: String) -> Unit,
@@ -37,6 +41,7 @@ fun OpenFilesScreen(
 ) {
     var stateA by remember { mutableStateOf<PickState>(PickState.None) }
     var stateB by remember { mutableStateOf<PickState>(PickState.None) }
+    var durationMismatch by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
@@ -48,11 +53,32 @@ fun OpenFilesScreen(
         }
     }
 
+    val pathA = (stateA as? PickState.Valid)?.path
+    val pathB = (stateB as? PickState.Valid)?.path
+
+    LaunchedEffect(pathA, pathB) {
+        if (pathA != null && pathB != null) {
+            val durA = withContext(Dispatchers.Default) { getAudioDuration(pathA) }
+            val durB = withContext(Dispatchers.Default) { getAudioDuration(pathB) }
+            durationMismatch = if (durA != null && durB != null) {
+                abs(durA - durB) > MAX_DURATION_DIFF_SECONDS
+            } else false
+        } else {
+            durationMismatch = false
+        }
+    }
+
     Column(
         Modifier.fillMaxWidth().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Open Files", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Choose two tracks of equal length to compare",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
         Spacer(Modifier.height(24.dp))
 
@@ -62,12 +88,18 @@ fun OpenFilesScreen(
 
         Spacer(Modifier.height(32.dp))
 
-        val pathA = (stateA as? PickState.Valid)?.path
-        val pathB = (stateB as? PickState.Valid)?.path
+        if (durationMismatch) {
+            Text(
+                "Files must have equal length",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+            Spacer(Modifier.height(8.dp))
+        }
 
         Button(
             onClick = { onLoad(pathA!!, pathB!!) },
-            enabled = pathA != null && pathB != null
+            enabled = pathA != null && pathB != null && !durationMismatch
         ) {
             Text("Load")
         }

@@ -2,7 +2,6 @@ package gubarev.abxtestompose
 
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.cValue
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
 import platform.AVFAudio.setActive
@@ -12,6 +11,7 @@ import platform.AVFoundation.AVPlayerItemDidPlayToEndTimeNotification
 import platform.AVFoundation.AVPlayerTimeControlStatusPlaying
 import platform.AVFoundation.addPeriodicTimeObserverForInterval
 import platform.AVFoundation.currentItem
+import platform.AVFoundation.duration
 import platform.AVFoundation.isPlaybackLikelyToKeepUp
 import platform.AVFoundation.pause
 import platform.AVFoundation.play
@@ -20,8 +20,8 @@ import platform.AVFoundation.seekToTime
 import platform.AVFoundation.currentTime
 import platform.AVFoundation.timeControlStatus
 import platform.CoreMedia.CMTime
+import platform.CoreMedia.CMTimeGetSeconds
 import platform.CoreMedia.CMTimeMakeWithSeconds
-import platform.CoreMedia.CMTimeConvertScale
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSURL
@@ -29,9 +29,7 @@ import platform.darwin.NSEC_PER_SEC
 import kotlin.experimental.ExperimentalNativeApi
 
 import abxtestcompose.composeapp.generated.resources.Res
-import kotlinx.cinterop.useContents
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-import platform.AVFoundation.duration
 import kotlin.native.ref.WeakReference
 
 @OptIn(ExperimentalForeignApi::class)
@@ -47,8 +45,6 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
 
     @OptIn(ExperimentalNativeApi::class)
     private var delegate: WeakReference<PresenterInterface>? = null
-
-    private var cmtimeStruct: CValue<CMTime> = CMTimeMakeWithSeconds(0.0, NSEC_PER_SEC.toInt())
 
     init {
         setUpAudioSession()
@@ -79,7 +75,6 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         }
     }
 
-
     @OptIn(ExperimentalNativeApi::class)
     private val observer: (CValue<CMTime>) -> Unit = {
         delegate?.get()?.didTimeChangeTo(time = getCurrentTime(), code = this.code)
@@ -88,9 +83,8 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         }
     }
 
-    actual fun getCurrentTime(): Double {
-        return  CMTimeConvertScale(player.currentTime(), cmtimeStruct.useContents { this.timescale }.toInt(), method = 1u ).useContents { this.value }.toDouble()
-    }
+    // Returns playback position in seconds — sample-rate independent.
+    actual fun getCurrentTime(): Double = CMTimeGetSeconds(player.currentTime())
 
     @OptIn(ExperimentalForeignApi::class, ExperimentalNativeApi::class)
     private fun startTimeObserver() {
@@ -114,17 +108,9 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         player.pause()
     }
 
+    // progress is seconds — CMTimeMakeWithSeconds keeps it sample-rate independent.
     actual fun syncTo(progress: Double) {
-
-        // заменить на copy?
-        val newTime: CValue<CMTime> = cValue{
-            value = progress.toLong()
-            epoch = cmtimeStruct.useContents { this.epoch }
-            flags = cmtimeStruct.useContents { this.flags }
-            timescale = cmtimeStruct.useContents { this.timescale }
-        }
-
-        player.seekToTime(newTime)
+        player.seekToTime(CMTimeMakeWithSeconds(progress, NSEC_PER_SEC.toInt()))
     }
 
     actual fun isPlaying(): Boolean {
@@ -135,11 +121,10 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         observer.let { NSNotificationCenter.defaultCenter.removeObserver(it) }
     }
 
+    // Returns duration in seconds — sample-rate independent.
     actual fun duration(): Double {
-        player.currentItem?.also { currentItem ->
-            cmtimeStruct = currentItem.duration
-            return currentItem.duration().useContents { this.value }.toDouble()
-        }
-        return 0.0
+        val d = player.currentItem?.duration ?: return 0.0
+        val seconds = CMTimeGetSeconds(d)
+        return if (seconds.isNaN() || seconds <= 0.0) 0.0 else seconds
     }
 }

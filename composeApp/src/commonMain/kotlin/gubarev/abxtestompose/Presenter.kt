@@ -40,7 +40,13 @@ class Presenter: PresenterInterface {
         val savedA = settings.get("path_a")
         val savedB = settings.get("path_b")
         if (savedA != null && savedB != null) {
-            loadTracks(savedA, savedB)
+            scope.launch {
+                val durA = getAudioDuration(savedA)
+                val durB = getAudioDuration(savedB)
+                if (durA != null && durB != null && kotlin.math.abs(durA - durB) <= 1.0) {
+                    loadTracks(savedA, savedB)
+                }
+            }
         }
     }
 
@@ -69,14 +75,13 @@ class Presenter: PresenterInterface {
             return
         }
 
-        // TODO: remove
-        val test = audioPlayers[chosenTrack]?.duration()
+        val fromTrack = _state.value.userChosenTrack
 
         _state.update {
             it.copy( userChosenTrack = chosenTrack)
         }
 
-        switchToTrack(trackToPlay = getTrackToPlay(chosenTrack))
+        switchToTrack(trackToPlay = getTrackToPlay(chosenTrack), fromTrack = getTrackToPlay(fromTrack))
     }
 
     private fun getTrackToPlay(chosenTrack: TrackCode): TrackCode {
@@ -87,13 +92,17 @@ class Presenter: PresenterInterface {
         }
     }
 
-    private fun switchToTrack(trackToPlay: TrackCode) {
+    private fun switchToTrack(trackToPlay: TrackCode, fromTrack: TrackCode) {
+
+        println("$trackToPlay, $fromTrack")
+
         audioPlayers[trackToPlay]?.let {
             audioPlayers[anotherPlayerCode(trackToPlay)]?.pause()
             if (_state.value.isPlaying) {
                 it.start()
             }
-            it.syncTo(progress = audioPlayers[anotherPlayerCode(trackToPlay)]?.getCurrentTime() ?: 0.0)
+            val syncToTrack = if (fromTrack == trackToPlay) trackToPlay else anotherPlayerCode(trackToPlay)
+            it.syncTo(progress = audioPlayers[syncToTrack]?.getCurrentTime() ?: 0.0)
         }
     }
 
@@ -144,6 +153,13 @@ class Presenter: PresenterInterface {
         }
     }
 
+    fun stopPlayback() {
+        if (_state.value.isPlaying) {
+            _state.update { it.copy(isPlaying = false) }
+            audioPlayers.values.forEach { it.pause() }
+        }
+    }
+
     fun playOrPause() {
         _state.update {
             it.copy(isPlaying = !it.isPlaying)
@@ -178,12 +194,12 @@ class Presenter: PresenterInterface {
     }
 
     override fun didTimeChangeTo(time: Double, code: TrackCode) {
-        if (code == _state.value.userChosenTrack) {
+        if (code == getTrackToPlay(_state.value.userChosenTrack)) {
             val duration = audioPlayers[code]?.duration() ?: 0.0
-            val progress = time * 100 / duration
-
-            _state.update {
-                it.copy(sliderProgress = progress)
+            if (duration > 0) {
+                _state.update {
+                    it.copy(sliderProgress = time * 100 / duration)
+                }
             }
         }
     }
