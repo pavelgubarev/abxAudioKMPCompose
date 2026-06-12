@@ -9,14 +9,16 @@ import androidx.compose.ui.tooling.preview.Preview
 class MainActivity : ComponentActivity() {
 
     lateinit var presenter: Presenter
+    lateinit var openFilesPresenter: OpenFilesPresenter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PlatformContext.init(this)
         presenter = Presenter()
+        openFilesPresenter = OpenFilesPresenter(OpenFilesInteractor())
 
         setContent {
-            App(presenter)
+            App(presenter, openFilesPresenter)
         }
     }
 }
@@ -24,6 +26,5 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    val presenter = Presenter()
-    App(presenter)
+    App(Presenter(), OpenFilesPresenter(OpenFilesInteractor()))
 }

@@ -4,5 +4,6 @@ import androidx.compose.ui.window.ComposeUIViewController
 
 fun MainViewController() = ComposeUIViewController {
     val presenter = Presenter()
-    App(presenter)
+    val openFilesPresenter = OpenFilesPresenter(OpenFilesInteractor())
+    App(presenter, openFilesPresenter)
 }

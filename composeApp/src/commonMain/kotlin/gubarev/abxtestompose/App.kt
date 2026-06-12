@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -40,9 +39,14 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 private enum class Screen { Main, OpenFiles }
 
 @Composable
-fun App(presenter: Presenter) {
+fun App(presenter: Presenter, openFilesPresenter: OpenFilesPresenterInterface) {
     val state by presenter.state.collectAsStateWithLifecycle()
-    var screen by remember { mutableStateOf(Screen.Main) }
+    val openFilesState by openFilesPresenter.state.collectAsStateWithLifecycle()
+    var screen by remember { mutableStateOf(Screen.OpenFiles) }
+
+    LaunchedEffect(state.tracksLoaded) {
+        if (state.tracksLoaded) screen = Screen.Main
+    }
 
     AppTheme {
         when (screen) {
@@ -52,6 +56,9 @@ fun App(presenter: Presenter) {
                 onOpenFiles = { screen = Screen.OpenFiles }
             )
             Screen.OpenFiles -> OpenFilesScreen(
+                presenter = openFilesPresenter,
+                state = openFilesState,
+                canGoBack = state.tracksLoaded,
                 onLoad = { pathA, pathB ->
                     presenter.loadTracks(pathA, pathB)
                     screen = Screen.Main
@@ -63,13 +70,15 @@ fun App(presenter: Presenter) {
     LaunchedEffect(Unit) {
         presenter.onAppear()
     }
+    LaunchedEffect(screen) {
+        if (screen != Screen.Main) {
+            presenter.stopPlayback()
+        }
+    }
 }
 
 @Composable
 private fun MainScreen(presenter: Presenter, state: ABXTestingState, onOpenFiles: () -> Unit) {
-    DisposableEffect(Unit) {
-        onDispose { presenter.stopPlayback() }
-    }
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (state.tracksLoaded && state.pathA != null && state.pathB != null) {
             GlassCard(Modifier.fillMaxWidth()) {
@@ -116,7 +125,7 @@ private fun player(
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {
         GlassCard(Modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-                Text("Trial ${state.trialsCount + 1}", style = MaterialTheme.typography.titleMedium)
+                Text("Trial ${state.trialsCount + 1}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -192,21 +201,31 @@ fun answerButtons(didTap: (TrackCode) -> Unit) {
 @Composable
 fun playerSlider(sliderPosition: Double, onValueChange: (Float) -> Unit) {
     val trackColor = MaterialTheme.colorScheme.onSurface
+    val colors = SliderDefaults.colors(
+        thumbColor = trackColor,
+        activeTrackColor = trackColor,
+        inactiveTrackColor = trackColor.copy(alpha = 0.15f)
+    )
+    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Slider(
         value = sliderPosition.toFloat(),
         onValueChange = { onValueChange(it) },
         valueRange = 0f..100f,
-        colors = SliderDefaults.colors(
-            thumbColor = trackColor,
-            activeTrackColor = trackColor,
-            inactiveTrackColor = trackColor.copy(alpha = 0.15f)
-        ),
+        colors = colors,
+        interactionSource = interactionSource,
         thumb = {
-            Box(
-                Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(trackColor)
+            SliderDefaults.Thumb(
+                interactionSource = interactionSource,
+                colors = colors,
+                thumbSize = androidx.compose.ui.unit.DpSize(20.dp, 20.dp)
+            )
+        },
+        track = { sliderState ->
+            SliderDefaults.Track(
+                sliderState = sliderState,
+                colors = colors,
+                thumbTrackGapSize = 0.dp,
+                drawStopIndicator = null
             )
         }
     )

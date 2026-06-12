@@ -1,71 +1,46 @@
 package gubarev.abxtestompose
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlin.math.abs
-
-private sealed interface PickState {
-    data object None : PickState
-    data object Validating : PickState
-    data class Valid(val path: String) : PickState
-    data object Invalid : PickState
-}
-
-private const val MAX_DURATION_DIFF_SECONDS = 1.0
 
 @Composable
 fun OpenFilesScreen(
+    presenter: OpenFilesPresenterInterface,
+    state: OpenFilesState,
+    canGoBack: Boolean,
     onLoad: (pathA: String, pathB: String) -> Unit,
     onBack: () -> Unit
 ) {
-    var stateA by remember { mutableStateOf<PickState>(PickState.None) }
-    var stateB by remember { mutableStateOf<PickState>(PickState.None) }
-    var durationMismatch by remember { mutableStateOf(false) }
-
-    val scope = rememberCoroutineScope()
-
-    fun pick(onResult: (PickState) -> Unit): (String) -> Unit = { path ->
-        onResult(PickState.Validating)
-        scope.launch {
-            val valid = withContext(Dispatchers.Default) { validateAudioFile(path) }
-            onResult(if (valid) PickState.Valid(path) else PickState.Invalid)
-        }
+    DisposableEffect(Unit) {
+        onDispose { presenter.cancelSampleLoad() }
     }
 
-    val pathA = (stateA as? PickState.Valid)?.path
-    val pathB = (stateB as? PickState.Valid)?.path
-
-    LaunchedEffect(pathA, pathB) {
-        if (pathA != null && pathB != null) {
-            val durA = withContext(Dispatchers.Default) { getAudioDuration(pathA) }
-            val durB = withContext(Dispatchers.Default) { getAudioDuration(pathB) }
-            durationMismatch = if (durA != null && durB != null) {
-                abs(durA - durB) > MAX_DURATION_DIFF_SECONDS
-            } else false
-        } else {
-            durationMismatch = false
+    val wasLoadingSample = remember { mutableStateOf(false) }
+    LaunchedEffect(state.isLoadingSample) {
+        if (wasLoadingSample.value && !state.isLoadingSample && state.canLoad) {
+            onLoad(state.pathA!!, state.pathB!!)
         }
+        wasLoadingSample.value = state.isLoadingSample
     }
 
     Column(
@@ -80,15 +55,52 @@ fun OpenFilesScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(Modifier.height(24.dp))
-
-        TrackFileCard(label = "Track A", state = stateA, onFilePicked = pick { stateA = it })
         Spacer(Modifier.height(16.dp))
-        TrackFileCard(label = "Track B", state = stateB, onFilePicked = pick { stateB = it })
+
+        GlassCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text("Developer sample", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Lossless vs lossy — a quick demo to try the app",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(12.dp))
+                if (state.isLoadingSample) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Downloading…",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        TextButton(onClick = { presenter.cancelSampleLoad() }) {
+                            Text("Cancel")
+                        }
+                    }
+                } else {
+                    Button(
+                        onClick = { presenter.loadSample() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Load sample from the developer")
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        TrackFileCard(label = "Track A", state = state.fileA, onFilePicked = { presenter.pickFile(FileSlot.A, it) })
+        Spacer(Modifier.height(16.dp))
+        TrackFileCard(label = "Track B", state = state.fileB, onFilePicked = { presenter.pickFile(FileSlot.B, it) })
 
         Spacer(Modifier.height(32.dp))
 
-        if (durationMismatch) {
+        if (state.durationMismatch) {
             Text(
                 "Files must have equal length",
                 style = MaterialTheme.typography.bodyMedium,
@@ -98,38 +110,40 @@ fun OpenFilesScreen(
         }
 
         Button(
-            onClick = { onLoad(pathA!!, pathB!!) },
-            enabled = pathA != null && pathB != null && !durationMismatch
+            onClick = { onLoad(state.pathA!!, state.pathB!!) },
+            enabled = state.canLoad
         ) {
             Text("Load")
         }
 
-        Spacer(Modifier.height(8.dp))
-        TextButton(onClick = onBack) { Text("Back") }
+        if (canGoBack) {
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onBack) { Text("Back") }
+        }
     }
 }
 
 @Composable
-private fun TrackFileCard(label: String, state: PickState, onFilePicked: (String) -> Unit) {
+private fun TrackFileCard(label: String, state: FilePickState, onFilePicked: (String) -> Unit) {
     GlassCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(label, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             FilePickerButton(
-                label = if (state is PickState.None) "Select file…" else "Change file…",
+                label = if (state is FilePickState.None) "Select file…" else "Change file…",
                 onFilePicked = onFilePicked
             )
             Spacer(Modifier.height(4.dp))
             when (state) {
-                is PickState.None -> {}
-                is PickState.Validating -> Text("Checking…", style = MaterialTheme.typography.bodySmall)
-                is PickState.Valid -> Text(
+                is FilePickState.None -> {}
+                is FilePickState.Validating -> Text("Checking…", style = MaterialTheme.typography.bodySmall)
+                is FilePickState.Valid -> Text(
                     state.path.substringAfterLast('/'),
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                is PickState.Invalid -> Text(
+                is FilePickState.Invalid -> Text(
                     "Not a playable audio file",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error

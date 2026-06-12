@@ -93,16 +93,13 @@ class Presenter: PresenterInterface {
     }
 
     private fun switchToTrack(trackToPlay: TrackCode, fromTrack: TrackCode) {
-
-        println("$trackToPlay, $fromTrack")
-
         audioPlayers[trackToPlay]?.let {
+            val syncToTrack = if (fromTrack == trackToPlay) trackToPlay else anotherPlayerCode(trackToPlay)
+            it.syncTo(progress = audioPlayers[syncToTrack]?.getCurrentTime() ?: 0.0)
             audioPlayers[anotherPlayerCode(trackToPlay)]?.pause()
             if (_state.value.isPlaying) {
                 it.start()
             }
-            val syncToTrack = if (fromTrack == trackToPlay) trackToPlay else anotherPlayerCode(trackToPlay)
-            it.syncTo(progress = audioPlayers[syncToTrack]?.getCurrentTime() ?: 0.0)
         }
     }
 
@@ -122,7 +119,7 @@ class Presenter: PresenterInterface {
 
     fun didTapAnswer(answer: TrackCode) {
         _state.update {
-            it.copy( trialsCount = it.trialsCount + 1)
+            it.copy(trialsCount = it.trialsCount + 1)
         }
 
         if (answer == _state.value.currentCorrectAnswer) {
