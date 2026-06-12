@@ -39,7 +39,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 private enum class Screen { Main, OpenFiles }
 
 @Composable
-fun App(presenter: Presenter, openFilesPresenter: OpenFilesPresenterInterface) {
+fun App(presenter: MainPresenterInterface, openFilesPresenter: OpenFilesPresenterInterface) {
     val state by presenter.state.collectAsStateWithLifecycle()
     val openFilesState by openFilesPresenter.state.collectAsStateWithLifecycle()
     var screen by remember { mutableStateOf(Screen.OpenFiles) }
@@ -78,7 +78,7 @@ fun App(presenter: Presenter, openFilesPresenter: OpenFilesPresenterInterface) {
 }
 
 @Composable
-private fun MainScreen(presenter: Presenter, state: ABXTestingState, onOpenFiles: () -> Unit) {
+private fun MainScreen(presenter: MainPresenterInterface, state: ABXTestingState, onOpenFiles: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (state.tracksLoaded && state.pathA != null && state.pathB != null) {
             GlassCard(Modifier.fillMaxWidth()) {
@@ -119,7 +119,7 @@ private fun TrackInfo(label: String, path: String, metadata: AudioMetadata?) {
 
 @Composable
 private fun player(
-    presenter: Presenter,
+    presenter: MainPresenterInterface,
     state: ABXTestingState
 ) {
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.Start) {

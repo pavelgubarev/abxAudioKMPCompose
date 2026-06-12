@@ -4,11 +4,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
-private const val MAX_DURATION_DIFF_SECONDS = 1.0
+private const val SAMPLE_URL_A = "https://gubarev.ru/abx_audio_samples/demo.aif"
+private const val SAMPLE_URL_B = "https://gubarev.ru/abx_audio_samples/demo.mp3"
+private const val SAMPLE_FILE_A = "demo.aif"
+private const val SAMPLE_FILE_B = "demo.mp3"
 
 interface OpenFilesInteractorOutput {
     fun didValidateFile(slot: FileSlot, isValid: Boolean, path: String)
@@ -22,6 +25,7 @@ interface OpenFilesInteractorInterface {
     fun checkDurationMismatch(pathA: String, pathB: String)
     fun loadSample()
     fun cancelSampleLoad()
+    fun dispose()
 }
 
 class OpenFilesInteractor : OpenFilesInteractorInterface {
@@ -42,7 +46,7 @@ class OpenFilesInteractor : OpenFilesInteractorInterface {
         scope.launch {
             val durA = getAudioDuration(pathA)
             val durB = getAudioDuration(pathB)
-            val mismatch = if (durA != null && durB != null) abs(durA - durB) > MAX_DURATION_DIFF_SECONDS else false
+            val mismatch = durA != null && durB != null && !durationsMatch(durA, durB)
             output?.didCheckDurationMismatch(mismatch)
         }
     }
@@ -50,9 +54,9 @@ class OpenFilesInteractor : OpenFilesInteractorInterface {
     override fun loadSample() {
         loadSampleJob?.cancel()
         loadSampleJob = scope.launch {
-            val pathA = downloadFile("https://gubarev.ru/abx_audio_samples/demo.aif", "demo.aif")
+            val pathA = downloadFile(SAMPLE_URL_A, SAMPLE_FILE_A)
             ensureActive()
-            val pathB = downloadFile("https://gubarev.ru/abx_audio_samples/demo.mp3", "demo.mp3")
+            val pathB = downloadFile(SAMPLE_URL_B, SAMPLE_FILE_B)
             if (pathA != null && pathB != null) {
                 output?.didLoadSample(pathA, pathB)
             }
@@ -62,5 +66,10 @@ class OpenFilesInteractor : OpenFilesInteractorInterface {
     override fun cancelSampleLoad() {
         loadSampleJob?.cancel()
         loadSampleJob = null
+    }
+
+    override fun dispose() {
+        output = null
+        scope.cancel()
     }
 }

@@ -12,7 +12,7 @@ import androidx.media3.exoplayer.ExoPlayer
 actual class MediaPlayerController actual constructor(platformContext: PlatformContext) {
     private val player = ExoPlayer.Builder(platformContext.applicationContext).build()
     private val handler = Handler(Looper.getMainLooper())
-    private var delegate: PresenterInterface? = null
+    private var delegate: MediaPlayerDelegate? = null
     private var trackCode: TrackCode = TrackCode.A
 
     private val timeUpdater = object : Runnable {
@@ -24,7 +24,7 @@ actual class MediaPlayerController actual constructor(platformContext: PlatformC
 
     actual fun getCurrentTime(): Double = player.currentPosition.toDouble()
 
-    actual fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: PresenterInterface, code: TrackCode) {
+    actual fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: MediaPlayerDelegate, code: TrackCode) {
         this.delegate = delegate
         this.trackCode = code
         val mediaItem = MediaItem.fromUri(pathSource)
@@ -46,7 +46,6 @@ actual class MediaPlayerController actual constructor(platformContext: PlatformC
         })
         player.setMediaItem(mediaItem)
         player.prepare()
-        player.play()
         handler.post(timeUpdater)
     }
 

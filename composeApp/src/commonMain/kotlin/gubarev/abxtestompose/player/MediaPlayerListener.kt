@@ -5,3 +5,7 @@ interface MediaPlayerListener {
     fun onAudioCompleted()
     fun onError()
 }
+
+interface MediaPlayerDelegate {
+    fun didTimeChangeTo(time: Double, code: TrackCode)
+}

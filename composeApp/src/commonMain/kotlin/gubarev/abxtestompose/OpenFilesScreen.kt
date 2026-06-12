@@ -16,8 +16,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,12 +33,13 @@ fun OpenFilesScreen(
         onDispose { presenter.cancelSampleLoad() }
     }
 
-    val wasLoadingSample = remember { mutableStateOf(false) }
-    LaunchedEffect(state.isLoadingSample) {
-        if (wasLoadingSample.value && !state.isLoadingSample && state.canLoad) {
-            onLoad(state.pathA!!, state.pathB!!)
+    LaunchedEffect(state.sampleLoaded) {
+        if (state.sampleLoaded) {
+            presenter.consumeSampleLoaded()
+            if (state.canLoad) {
+                onLoad(state.pathA!!, state.pathB!!)
+            }
         }
-        wasLoadingSample.value = state.isLoadingSample
     }
 
     Column(

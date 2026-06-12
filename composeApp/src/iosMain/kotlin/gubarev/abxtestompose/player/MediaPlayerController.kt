@@ -15,6 +15,7 @@ import platform.AVFoundation.duration
 import platform.AVFoundation.isPlaybackLikelyToKeepUp
 import platform.AVFoundation.pause
 import platform.AVFoundation.play
+import platform.AVFoundation.removeTimeObserver
 import platform.AVFoundation.replaceCurrentItemWithPlayerItem
 import platform.AVFoundation.seekToTime
 import platform.AVFoundation.currentTime
@@ -35,7 +36,8 @@ import kotlin.native.ref.WeakReference
 @OptIn(ExperimentalForeignApi::class)
 actual class MediaPlayerController actual constructor(val platformContext: PlatformContext) {
 
-    private lateinit var timeObserver: Any
+    private var timeObserver: Any? = null
+    private var endOfTrackObserverToken: Any? = null
 
     private val player: AVPlayer = AVPlayer()
 
@@ -44,14 +46,14 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
     var code: TrackCode = TrackCode.A
 
     @OptIn(ExperimentalNativeApi::class)
-    private var delegate: WeakReference<PresenterInterface>? = null
+    private var delegate: WeakReference<MediaPlayerDelegate>? = null
 
     init {
         setUpAudioSession()
     }
 
     @OptIn(ExperimentalResourceApi::class, ExperimentalNativeApi::class)
-    actual fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: PresenterInterface, code: TrackCode) {
+    actual fun prepare(pathSource: String, listener: MediaPlayerListener, delegate: MediaPlayerDelegate, code: TrackCode) {
         this.code = code
         this.listener = listener
         this.delegate = WeakReference(delegate)
@@ -90,7 +92,7 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
     private fun startTimeObserver() {
         val interval = CMTimeMakeWithSeconds(1.0, NSEC_PER_SEC.toInt())
         timeObserver = player.addPeriodicTimeObserverForInterval(interval, null, observer)
-        NSNotificationCenter.defaultCenter.addObserverForName(
+        endOfTrackObserverToken = NSNotificationCenter.defaultCenter.addObserverForName(
             name = AVPlayerItemDidPlayToEndTimeNotification,
             `object` = player.currentItem,
             queue = NSOperationQueue.mainQueue,
@@ -117,8 +119,16 @@ actual class MediaPlayerController actual constructor(val platformContext: Platf
         return this.player.timeControlStatus == AVPlayerTimeControlStatusPlaying
     }
 
+    @OptIn(ExperimentalNativeApi::class)
     actual fun release() {
-        observer.let { NSNotificationCenter.defaultCenter.removeObserver(it) }
+        player.pause()
+        timeObserver?.let { player.removeTimeObserver(it) }
+        timeObserver = null
+        endOfTrackObserverToken?.let { NSNotificationCenter.defaultCenter.removeObserver(it) }
+        endOfTrackObserverToken = null
+        listener = null
+        delegate = null
+        player.replaceCurrentItemWithPlayerItem(null)
     }
 
     // Returns duration in seconds — sample-rate independent.

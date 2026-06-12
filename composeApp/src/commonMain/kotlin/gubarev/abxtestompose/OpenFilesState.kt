@@ -4,7 +4,8 @@ data class OpenFilesState(
     val fileA: FilePickState = FilePickState.None,
     val fileB: FilePickState = FilePickState.None,
     val durationMismatch: Boolean = false,
-    val isLoadingSample: Boolean = false
+    val isLoadingSample: Boolean = false,
+    val sampleLoaded: Boolean = false
 ) {
     val pathA: String? get() = (fileA as? FilePickState.Valid)?.path
     val pathB: String? get() = (fileB as? FilePickState.Valid)?.path

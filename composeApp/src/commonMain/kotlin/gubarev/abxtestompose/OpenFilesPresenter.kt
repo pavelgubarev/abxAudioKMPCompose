@@ -4,24 +4,31 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 
 interface OpenFilesPresenterInterface {
     val state: StateFlow<OpenFilesState>
     fun pickFile(slot: FileSlot, path: String)
     fun loadSample()
     fun cancelSampleLoad()
+    fun consumeSampleLoaded()
+    fun dispose()
 }
 
-class OpenFilesPresenter(
+class OpenFilesPresenter private constructor(
     private val interactor: OpenFilesInteractorInterface
 ) : OpenFilesPresenterInterface, OpenFilesInteractorOutput {
 
+    companion object {
+        fun create(interactor: OpenFilesInteractorInterface = OpenFilesInteractor()): OpenFilesPresenter {
+            val presenter = OpenFilesPresenter(interactor)
+            interactor.output = presenter
+            return presenter
+        }
+    }
+
     private val _state = MutableStateFlow(OpenFilesState())
     override val state: StateFlow<OpenFilesState> = _state.asStateFlow()
-
-    init {
-        interactor.output = this
-    }
 
     override fun pickFile(slot: FileSlot, path: String) {
         _state.update {
@@ -43,18 +50,26 @@ class OpenFilesPresenter(
         _state.update { it.copy(isLoadingSample = false) }
     }
 
+    override fun consumeSampleLoaded() {
+        _state.update { it.copy(sampleLoaded = false) }
+    }
+
+    override fun dispose() {
+        interactor.dispose()
+    }
+
     // OpenFilesInteractorOutput
 
     override fun didValidateFile(slot: FileSlot, isValid: Boolean, path: String) {
-        _state.update {
+        val newState = _state.updateAndGet {
             val newPickState = if (isValid) FilePickState.Valid(path) else FilePickState.Invalid
             when (slot) {
                 FileSlot.A -> it.copy(fileA = newPickState)
                 FileSlot.B -> it.copy(fileB = newPickState)
             }
         }
-        val pathA = _state.value.pathA
-        val pathB = _state.value.pathB
+        val pathA = newState.pathA
+        val pathB = newState.pathB
         if (pathA != null && pathB != null) {
             interactor.checkDurationMismatch(pathA, pathB)
         }
@@ -70,7 +85,8 @@ class OpenFilesPresenter(
                 fileA = FilePickState.Valid(pathA),
                 fileB = FilePickState.Valid(pathB),
                 durationMismatch = false,
-                isLoadingSample = false
+                isLoadingSample = false,
+                sampleLoaded = true
             )
         }
     }

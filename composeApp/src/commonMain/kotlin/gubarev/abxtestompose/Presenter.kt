@@ -3,17 +3,30 @@ package gubarev.abxtestompose
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 
-interface PresenterInterface {
-    fun didTimeChangeTo(time: Double, code: TrackCode)
+private const val KEY_PATH_A = "path_a"
+private const val KEY_PATH_B = "path_b"
+
+interface MainPresenterInterface {
+    val state: StateFlow<ABXTestingState>
+    fun loadTracks(pathA: String, pathB: String)
+    fun didChooseTrack(chosenTrack: TrackCode)
+    fun didTapAnswer(answer: TrackCode)
+    fun didChangeSliderProgress(progress: Double)
+    fun playOrPause()
+    fun stopPlayback()
+    fun onAppear()
+    fun dispose()
 }
 
-class Presenter: PresenterInterface {
+class Presenter : MainPresenterInterface, MediaPlayerDelegate {
 
     private val context = PlatformContext()
     private val settings = AppSettings()
@@ -22,7 +35,7 @@ class Presenter: PresenterInterface {
     private var bothCodes = arrayOf(TrackCode.A, TrackCode.B)
 
     private val _state = MutableStateFlow(ABXTestingState())
-    val state: StateFlow<ABXTestingState> = _state.asStateFlow()
+    override val state: StateFlow<ABXTestingState> = _state.asStateFlow()
 
     private val listener = object : MediaPlayerListener {
         override fun onReady() {
@@ -37,20 +50,20 @@ class Presenter: PresenterInterface {
     }
 
     init {
-        val savedA = settings.get("path_a")
-        val savedB = settings.get("path_b")
+        val savedA = settings.get(KEY_PATH_A)
+        val savedB = settings.get(KEY_PATH_B)
         if (savedA != null && savedB != null) {
             scope.launch {
                 val durA = getAudioDuration(savedA)
                 val durB = getAudioDuration(savedB)
-                if (durA != null && durB != null && kotlin.math.abs(durA - durB) <= 1.0) {
+                if (durationsMatch(durA, durB)) {
                     loadTracks(savedA, savedB)
                 }
             }
         }
     }
 
-    fun loadTracks(pathA: String, pathB: String) {
+    override fun loadTracks(pathA: String, pathB: String) {
         audioPlayers.values.forEach { it.release() }
         audioPlayers.clear()
         _state.value = ABXTestingState(tracksLoaded = true, pathA = pathA, pathB = pathB)
@@ -60,8 +73,8 @@ class Presenter: PresenterInterface {
             player.prepare(path, listener = listener, delegate = this, code = code)
             audioPlayers[code] = player
         }
-        settings.set("path_a", pathA)
-        settings.set("path_b", pathB)
+        settings.set(KEY_PATH_A, pathA)
+        settings.set(KEY_PATH_B, pathB)
         setNextCorrectAnswer()
         scope.launch {
             val metaA = getAudioMetadata(pathA)
@@ -70,7 +83,7 @@ class Presenter: PresenterInterface {
         }
     }
 
-    fun didChooseTrack(chosenTrack: TrackCode) {
+    override fun didChooseTrack(chosenTrack: TrackCode) {
         if (chosenTrack == _state.value.userChosenTrack) {
             return
         }
@@ -117,25 +130,20 @@ class Presenter: PresenterInterface {
         }
     }
 
-    fun didTapAnswer(answer: TrackCode) {
+    override fun didTapAnswer(answer: TrackCode) {
         _state.update {
-            it.copy(trialsCount = it.trialsCount + 1)
-        }
-
-        if (answer == _state.value.currentCorrectAnswer) {
-            _state.update {
-                it.copy( correctAnswersCount = it.correctAnswersCount + 1)
-            }
+            val newCorrectCount = if (answer == it.currentCorrectAnswer) it.correctAnswersCount + 1 else it.correctAnswersCount
+            it.copy(trialsCount = it.trialsCount + 1, correctAnswersCount = newCorrectCount)
         }
         updateCanGetDifferenceState()
         setNextCorrectAnswer()
     }
 
-    fun didChangeSliderProgress(progress: Double) {
+    override fun didChangeSliderProgress(progress: Double) {
         syncProgress(progress)
     }
 
-    fun onAppear() {
+    override fun onAppear() {
         setNextCorrectAnswer()
     }
 
@@ -150,43 +158,46 @@ class Presenter: PresenterInterface {
         }
     }
 
-    fun stopPlayback() {
+    override fun stopPlayback() {
         if (_state.value.isPlaying) {
             _state.update { it.copy(isPlaying = false) }
             audioPlayers.values.forEach { it.pause() }
         }
     }
 
-    fun playOrPause() {
-        _state.update {
+    override fun playOrPause() {
+        val newState = _state.updateAndGet {
             it.copy(isPlaying = !it.isPlaying)
         }
 
         for ((code, player) in audioPlayers) {
-            if (!_state.value.isPlaying) {
+            if (!newState.isPlaying) {
                 player.pause()
             } else {
-                if (code == getTrackToPlay(_state.value.userChosenTrack)) {
+                if (code == getTrackToPlay(newState.userChosenTrack)) {
                     player.start()
                 }
             }
         }
     }
 
+    override fun dispose() {
+        audioPlayers.values.forEach { it.release() }
+        audioPlayers.clear()
+        scope.cancel()
+    }
+
     private fun updateCanGetDifferenceState() {
-        when {
-            (_state.value.trialsCount < trialsToMinCorrect.keys.min()) -> {
-                _state.update {
-                    it.copy (trials = TrialsState.NotEnoughTrials)
+        _state.update {
+            val newTrials = when {
+                it.trialsCount < trialsToMinCorrect.keys.min() -> TrialsState.NotEnoughTrials
+                it.trialsCount in trialsToMinCorrect.keys.min()..trialsToMinCorrect.keys.max() -> {
+                    val minCorrectAnswersCount = trialsToMinCorrect[it.trialsCount] ?: 0
+                    TrialsState.EnoughTrials(it.correctAnswersCount >= minCorrectAnswersCount)
                 }
+                else -> it.trials
             }
-            (_state.value.trialsCount in trialsToMinCorrect.keys.min()..trialsToMinCorrect.keys.max()) -> {
-                val minCorrectAnswersCount = trialsToMinCorrect[_state.value.trialsCount] ?: 0
-                val canTellDifference: Boolean = _state.value.correctAnswersCount >= minCorrectAnswersCount
-                _state.update {
-                    it.copy (trials = TrialsState.EnoughTrials(canTellDifference))
-                }
-            }
+            it.copy(trials = newTrials)
         }
     }
 
